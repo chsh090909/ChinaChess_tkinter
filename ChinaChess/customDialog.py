@@ -61,7 +61,7 @@ class MyDialog(Toplevel):
         # 添加一个图片
         cv.create_image(78, 55, image=self.img)
         # 添加一行文字
-        text_show_font = ('经典繁毛楷', 25)
+        text_show_font = (self.setting.font_style, 25)
         text_show_text = self.setting.game_title + self.setting.version
         cv.create_text(216, 52, text=text_show_text, font=text_show_font)
         # 添加一个文本域，只读模式，显示版本更新信息

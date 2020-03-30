@@ -15,3 +15,10 @@ class ImgNotFound(BaseException):
 
     def __str__(self):
         return self.value
+
+class FileNotFound(BaseException):
+    def __init__(self, value):
+        self.value = value
+
+    def __str__(self):
+        return self.value

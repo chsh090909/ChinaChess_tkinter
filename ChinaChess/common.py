@@ -46,12 +46,25 @@ class Commmon():
             raise ImgNotFound('传入图片格式不正确或者图片不存在！')
 
     # 读取文件
-    def read_file(self, filename):
+    def read_file(self, filename, flag=None):
         try:
             with open(filename, 'r', encoding='utf-8') as f:
-                return f.read()
+                if flag is None:
+                    return f.read()
+                elif flag == 'info':
+                    return f.readlines()
         except Exception as e:
             print(e)
+
+    # 获取当前系统时间，格式化后添加到文件名称中
+    def format_now_time(self):
+        ntime = time.strftime('_%Y_%m_%d_%H_%M_%S')
+        return ntime
+
+    # 获取当前系统时间
+    def get_now_time(self):
+        ntime = time.strftime('%Y-%m-%d %H:%M:%S')
+        return ntime
 
 if __name__ == '__main__':
     common = Commmon()

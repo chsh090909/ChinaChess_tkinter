@@ -52,8 +52,8 @@ class GameFunction():
     # 获取鼠标位置所对应的方格坐标
     def get_box_xy(self, event_x, event_y):
         # 确定鼠标的有效矩形位置
-        min_area_x = self.setting.piece_00_x
-        min_area_y = self.setting.piece_00_y
+        min_area_x = self.setting.piece_first_x
+        min_area_y = self.setting.piece_first_y
         max_area_x = min_area_x + 8 * self.setting.piece_size
         max_area_y = min_area_y + 4 * self.setting.piece_size
         # 确认鼠标是在棋盘上有效的矩形范围之内

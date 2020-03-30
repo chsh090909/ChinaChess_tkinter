@@ -17,11 +17,16 @@ from ChinaChess.gameFunction import GameFunction
 from ChinaChess.customDialog import MyDialog
 from ChinaChess.playMusic import PlayMusic
 from ChinaChess.common import Commmon
+from ChinaChess.loggerPrint import LoggerPrint
 
 # 导入settings配置文件
 setting = Settings()
 # 加载公共模块方法
 common = Commmon()
+# 加载日志功能
+logger = LoggerPrint()
+log = logger.printLogToSystem(is_out_file=True, filename='log')
+
 # 加载游戏逻辑方法
 game = GameFunction(setting)
 # 加载音乐播放模块
@@ -88,7 +93,7 @@ class Chess():
 
     # 为关于菜单，打开自定义对话框展示版本信息等
     def about_dialog(self):
-        MyDialog(self.master, title='关于游戏', img=about_favicon_img)
+        MyDialog(self.master, title='关于游戏', img=red_jiang_img)
 
     # 为如何玩菜单，打开pdf文件
     def how_play(self):
@@ -120,41 +125,63 @@ class Chess():
         self.load_chess_board()
         # 加载棋子背面图片
         self.box_back_dict = self.load_pieces_back()
+        # 加载玩家信息内容
+        self.load_player_info()
         # 加载鼠标悬停棋子的选中效果
         self.piece_selected = self.load_piece_selected()
         # cv绑定鼠标事件
         self.cv.bind('<Motion>', self.move_handler)
         self.cv.bind('<Button-1>', self.click_handler)
 
+    # 加载棋盘图片
     def load_chess_board(self):
-        # 加载棋盘图片
-        self.cv.create_image(setting.chess_board_localx, setting.chess_board_localy, image=board_img)
+        self.cv.create_image(setting.chess_board_localx, setting.chess_board_localy, image=board_img, anchor=NW)
 
+    # 加载棋子背面，循环加载
     def load_pieces_back(self):
-        # 加载棋子背面，循环加载
         box_back_dict = {}
         for i in range(8):
             for j in range(4):
                 piece_local_x = setting.piece_first_x + i * setting.piece_size
                 piece_local_y = setting.piece_first_y + j * setting.piece_size
-                back_img = self.cv.create_image(piece_local_x, piece_local_y, image=pieces_back_img)
+                back_img = self.cv.create_image(piece_local_x, piece_local_y, image=pieces_back_img, anchor=NW)
                 box_back_dict[f"box_{str(i)}{str(j)}"] = back_img
         return box_back_dict
 
+    # 加载选中棋子的图片
     def load_piece_selected(self):
-        # 加载选中棋子的图片
         piece_selected = self.cv.create_image(-100, -100, image=piece_selected_img)
         return piece_selected
+
+    # 加载玩家信息部分的内容
+    def load_player_info(self):
+        self.cv.create_rectangle(0, 495, 1030, 500, fill='red', outline='red')
+        self.cv.create_rectangle(513, 495, 517, 680, fill='red', outline='red')
+        # 玩家一
+        player_name_font = (setting.font_style, setting.font_player_size)
+        player_info_font = (setting.font_style, setting.font_info_size)
+        self.cv.create_text(105, 548, text=setting.player1_name, font=player_name_font, anchor=CENTER)
+        self.cv.create_image(100, 620, image=red_jiang_img)
+        self.cv.create_text(220, 517, text='状态：正在走棋。。。', font=player_info_font, anchor=NW)
+        self.cv.create_text(220, 552, text='执方：红方', font=player_info_font, anchor=NW)
+        self.cv.create_text(220, 587, text='胜利：0 局', font=player_info_font, anchor=NW)
+        self.cv.create_text(220, 622, text='打平：0 局', font=player_info_font, anchor=NW)
+        # 玩家二
+        self.cv.create_text(618, 548, text=setting.player2_name, font=player_name_font, anchor=CENTER)
+        self.cv.create_image(615, 620, image=black_jiang_img)
+        self.cv.create_text(735, 517, text='状态：正在走棋。。。', font=player_info_font, anchor=NW)
+        self.cv.create_text(735, 552, text='执方：黑方', font=player_info_font, anchor=NW)
+        self.cv.create_text(735, 587, text='胜利：0 局', font=player_info_font, anchor=NW)
+        self.cv.create_text(735, 622, text='打平：0 局', font=player_info_font, anchor=NW)
 
     # 鼠标移动事件：获取鼠标坐标，画一个高亮的圆，表示当前鼠标在这个棋子上
     def move_handler(self, event):
         if game.get_box_xy(event.x, event.y):
             box_x, box_y = game.get_box_xy(event.x, event.y)
-            box_center_x = box_x * setting.piece_size + setting.piece_00_x + setting.piece_size / 2
-            box_center_y = box_y * setting.piece_size + setting.piece_00_y + setting.piece_size / 2
+            box_center_x = box_x * setting.piece_size + setting.piece_first_x + setting.piece_size / 2
+            box_center_y = box_y * setting.piece_size + setting.piece_first_y + setting.piece_size / 2
             # 将create_image之后选中的图片，叠加到鼠标对应的棋子上
             self.cv.coords(self.piece_selected, box_center_x, box_center_y)
-
 
     # 鼠标单击事件：
     def click_handler(self, event):
@@ -165,14 +192,14 @@ class Chess():
             box_piece = all_pieces[box_xy]
             piece_state = box_piece['state']
             #
-            box_local_x = box_x * setting.piece_size + setting.piece_00_x + setting.piece_size / 2
-            box_local_y = box_y * setting.piece_size + setting.piece_00_y + setting.piece_size / 2
+            box_local_x = box_x * setting.piece_size + setting.piece_first_x
+            box_local_y = box_y * setting.piece_size + setting.piece_first_y
             #
             print(f"self.first_seleced: {self.is_first_selected}")
             if piece_state is True:
                 if self.is_first_selected is True:
                     # 第一次选择棋子，加载选中框
-                    self.first_selected_img = self.cv.create_image(box_local_x, box_local_y, image=piece_selected_img)
+                    self.first_selected_img = self.cv.create_image(box_local_x, box_local_y, image=piece_selected_img, anchor=NW)
                     # 将第一次选择的状态改为false
                     self.is_first_selected = False
                     # 记录下第一次选择的box坐标
@@ -201,10 +228,9 @@ class Chess():
                 # 从pieces_img字典中获取棋子标记对应的img图片
                 piece_img = pieces_img[box_key]
                 # 加载新打开的图片
-                self.cv.create_image(box_local_x, box_local_y, image=piece_img)
+                self.cv.create_image(box_local_x, box_local_y, image=piece_img, anchor=NW)
             else:
                 pass
-
 
     # 关闭窗口事件
     def close_window(self):
@@ -238,7 +264,8 @@ if __name__ == '__main__':
     # 加载棋子选中时的颜色图片
     piece_selected_img = PhotoImage(file=setting.piece_selected)
     # 加载关于窗体中的favicon图标
-    about_favicon_img = common.change_img('images/piece_red_jiang.gif', width=64, height=64)
+    red_jiang_img = common.change_img('images/piece_red_jiang.gif', width=64, height=64)
+    black_jiang_img = common.change_img('images/piece_black_jiang.gif', width=64, height=64)
     # 加载所有棋子图片
     pieces_dict = game.get_piece_image()
     pieces_img = common.change_img(img=pieces_dict)
