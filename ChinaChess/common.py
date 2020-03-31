@@ -11,10 +11,14 @@
 import platform
 from PIL import Image, ImageTk
 from ChinaChess.customException import *
+from ChinaChess.loggerPrint import LoggerPrint
+from ChinaChess.settings import Settings
 
 class Commmon():
     def __init__(self):
-        pass
+        self.__setting = Settings()
+        self.__logger = LoggerPrint(self.__setting)
+        self.log = self.__logger.printLogToSystem()
 
     # 获取当前系统的名称
     def get_system_name(self):
@@ -25,6 +29,9 @@ class Commmon():
         elif platform.uname().system == 'Windows' or platform.platform().split('-')[0] == 'Windows':
             # windows系统加载默认setting设置，设置flag为2
             system_flag = 2
+        else:
+            system_flag = 3
+        self.log.info(f"当前系统为：{platform.uname().system}")
         return system_flag
 
     # 压缩图片，改变图片的大小

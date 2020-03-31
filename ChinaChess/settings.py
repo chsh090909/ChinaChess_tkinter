@@ -25,7 +25,7 @@ class Settings(object):
         self.chess_board_localy = 20
         # 设置棋子大小、（0，0）棋子的位置
         self.piece_size = 100
-        self.piece_first_x = self.chess_board_localx + 37
+        self.piece_first_x = self.chess_board_localx + 28
         self.piece_first_y = self.chess_board_localy + 32
         # 设置棋子背面的图案
         self.pieces_back = 'images/pieces_back.gif'
@@ -54,29 +54,16 @@ class Settings(object):
         self.help_file = '/help/教你如何玩.pdf'
         # 设置棋子的移动速度
         self.piece_move_speed = 30
-        # 设置颜色
-        #                 R    G    B
-        self.GRAY =     (100, 100, 100)
-        self.NAVYBLUE = ( 60,  60, 100)
-        self.WHITE =    (255, 255, 255)
-        self.BLACK =    (  0,   0,   0)
-        self.RED =      (255,   0,   0)
-        self.GREEN =    (  0, 255,   0)
-        self.BLUE =     (  0,   0, 255)
-        self.YELLOW =   (255, 255,   0)
-        self.ORANGE =   (255, 128,   0)
-        self.PURPLE =   (255,   0, 255)
-        self.CYAN =     (  0, 255, 255)
         # 设置游戏结束图片和大小
         self.win_image = 'images/win.gif'
         self.font_win_size = 50
         # 设置走棋步骤记录的文件名称
         self.info_file_name = 'logs/chess.info'
         # 设置日志文件记录位置和名称
-        self.log_file_name = 'logs/chess_log.log'
+        self.log_file_name = 'logs/chess.log'
         # 设置日志记录的格式、日志等级等信息
-        self.sysout_format = '%(name)s:%(funcName)s() - %(levelname)s --> %(message)s'
-        self.file_write_format = '%(asctime)s - %(name)s:%(funcName)s() - %(levelname)s --> %(message)s'
+        self.sysout_format = "%(levelname)s- %(filename)s:%(funcName)s[line:%(lineno)d] --> %(message)s"
+        self.file_write_format = '%(asctime)s -%(levelname)s- %(filename)s:%(funcName)s[line:%(lineno)d] --> %(message)s'
         self.sysout_level = logging.DEBUG
         self.file_write_level = logging.INFO
         # 设置文件的游戏开头语
