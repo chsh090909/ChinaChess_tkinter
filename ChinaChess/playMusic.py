@@ -21,7 +21,7 @@ class PlayMusic():
     def __init__(self):
         self.setting = Settings()
         self.logger = LoggerPrint(self.setting)
-        self.log = self.logger.printLogToSystem()
+        self.log = self.logger.printLogToSystem(False)
         # 初始化混音器
         self.mixer_init = pygame.mixer.init()
         self.log.info("初始化混音器成功！")
@@ -64,6 +64,11 @@ class PlayMusic():
             pygame.mixer.music.stop()
             self.log.info('背景音乐播放停止！')
             PlayMusic._MUSIC_PLAY_FLAG = 1
+
+    # 加载操作棋子时的音效
+    def load_play_sound(self, sound):
+        soundobj = pygame.mixer.Sound(sound)
+        soundobj.play()
 
     # 退出游戏的时候，需要先退出pygame和mixer播放器
     def quit_music(self):

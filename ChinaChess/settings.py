@@ -36,8 +36,8 @@ class Settings(object):
         self.pieces_front = 'images/piece_'
         self.pieces_list = ['jiang', 'shi', 'xiang', 'ma', 'ju', 'pao', 'zu']
         # 设置玩家文字、字体和字号
-        self.player1_name = '东方不败'
-        self.player2_name = '西方必败'
+        self.player1_name = '玩家1'
+        self.player2_name = '玩家2'
         self.font_style = '经典繁毛楷'
         self.font_player_size = 44
         self.font_info_size = 30
