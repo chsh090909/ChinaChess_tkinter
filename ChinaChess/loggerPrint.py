@@ -10,7 +10,6 @@
 """
 import logging, sys, time
 from ChinaChess.customException import FileNotFound
-from ChinaChess.settings import Settings
 
 class LoggerPrint(object):
     def __init__(self, setting):

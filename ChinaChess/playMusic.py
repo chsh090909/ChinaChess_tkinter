@@ -11,15 +11,14 @@
 import pygame
 import random
 import threading
-from ChinaChess.settings import Settings
 from ChinaChess.loggerPrint import LoggerPrint
 
 class PlayMusic():
     # 设置音乐播放标志：0表示自动播放，1表示手动介入
     _MUSIC_PLAY_FLAG = 0
 
-    def __init__(self):
-        self.setting = Settings()
+    def __init__(self, setting):
+        self.setting = setting
         self.logger = LoggerPrint(self.setting)
         self.log = self.logger.printLogToSystem(False)
         # 初始化混音器
@@ -57,7 +56,7 @@ class PlayMusic():
         else:
             pass
 
-    # 手动停止背景音乐
+    # 手动停止背景音乐播放
     def stop_bg_music(self):
         mixer_state = pygame.mixer.get_init()
         if mixer_state:

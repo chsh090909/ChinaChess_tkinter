@@ -12,12 +12,11 @@ import platform
 from PIL import Image, ImageTk
 from ChinaChess.customException import *
 from ChinaChess.loggerPrint import LoggerPrint
-from ChinaChess.settings import Settings
 
 class Commmon():
-    def __init__(self):
-        self.__setting = Settings()
-        self.__logger = LoggerPrint(self.__setting)
+    def __init__(self, setting):
+        self.setting = setting
+        self.__logger = LoggerPrint(self.setting)
         self.log = self.__logger.printLogToSystem()
 
     # 获取当前系统的名称

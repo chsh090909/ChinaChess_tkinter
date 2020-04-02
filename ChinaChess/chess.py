@@ -22,29 +22,30 @@ from ChinaChess.loggerPrint import LoggerPrint
 # 导入settings配置文件
 setting = Settings()
 # 加载公共模块方法
-common = Commmon()
+common = Commmon(setting)
 # 加载日志功能
 logger = LoggerPrint(setting)
-log = logger.printLogToSystem(is_out_file=False)
 # 加载游戏逻辑方法
 game = GameFunction(setting)
 # 加载音乐播放模块
-play_music = PlayMusic()
-# 初始化所有棋子
-all_pieces = game.box_pieces()
-log.info(f"all_pieces: {all_pieces}")
+play_music = PlayMusic(setting)
 
 class Chess():
     def __init__(self, master):
         self.master = master
-        #
+        # 打印日志到控制台
+        self.log = logger.printLogToSystem(is_out_file=False)
+        # 初始化所有棋子
+        self.all_pieces = game.box_pieces()
+        self.log.info(f"all_pieces: {self.all_pieces}")
+        # 初始化走棋步骤相关参数
         self.is_first_selected = True
         self.first_selected_img = None
         self.first_selected_value = None
         self.second_selected_img = None
         self.second_selected_value = None
         self.box_open_dict = {}
-        #
+        # 初始化玩家消息参数
         self.player1 = setting.player1_name
         self.player2 = setting.player2_name
         self.nowPlayer = self.player1
@@ -53,7 +54,12 @@ class Chess():
         self.totalCount = 0
         self.wonCount = 0
         self.tieCount = 0
+        # 记录走棋总步数
         self.numCount = 0
+        # 完成整个游戏的最小步数为48步(打开所有棋子需要32步，彼此都吃掉对方需要16步)
+        self.allCount = 48
+        # 设置走棋音效是否播放开关
+        self.is_play = True
         # 获取系统信息，mac系统flag=1，windows系统flag=2
         self.system_flag = common.get_system_name()
         # 加载目录菜单
@@ -88,8 +94,8 @@ class Chess():
         # 加分割条
         operation_menu.add_separator()
         # 为背景音乐子菜单创建目录
+        operation_menu.add_command(label='音乐音效全关/开', command=self.change_all_sound, compound=LEFT)
         operation_menu.add_command(label='关闭背景音乐', command=play_music.stop_bg_music, compound=LEFT)
-        operation_menu.add_command(label='音乐音效全关', command=None, compound=LEFT)
         bg_music_menu = Menu(operation_menu, tearoff=0)
         operation_menu.add_cascade(label='切换背景音乐', menu=bg_music_menu)
         # 加载背景音乐列表
@@ -123,6 +129,21 @@ class Chess():
         music_id = self.bg_music_var.get()
         music_list = setting.music_list
         play_music.play_bg_music(music_file=music_list[music_id])
+
+    # 为音乐音效全关/开菜单，设置循环功能
+    def change_all_sound(self):
+        if self.is_play is True:
+            # 关闭背景音乐
+            play_music.stop_bg_music()
+            # 将走棋音效是否播放开关置为false
+            self.is_play = False
+            self.log.info("走棋音效关闭！")
+        else:
+            # 打开随机播放背景音乐
+            play_music.play_bg_music()
+            # 将走棋音效是否播放开关置为True
+            self.is_play = True
+            self.log.info("走棋音效打开！")
 
     # 初始化窗体内容
     def init_widgets(self):
@@ -211,13 +232,40 @@ class Chess():
             self.cv.itemconfig(self.player1_state, text=f'状态：正在走棋。。。')
             self.cv.itemconfig(self.player2_state, text=f'状态：走棋完毕！')
 
+    # 重置first—select状态
+    def reset_first_state(self):
+        # 删除第一次选中的图片
+        self.cv.delete(self.first_selected_img)
+        # 重置状态为初始状态
+        self.is_first_selected = True
+        self.first_selected_img = None
+        self.first_selected_value = None
+        self.second_selected_img = None
+        self.second_selected_value = None
+
+    # 打印各个参数的值
+    def print_log(self):
+        self.log.info(f"all_pieces: {self.all_pieces}")
+        self.log.info(f"self.is_first_selected: {self.is_first_selected}")
+        self.log.info(f"self.first_selected_img: {self.first_selected_img}")
+        self.log.info(f"self.first_selected_value: {self.first_selected_value}")
+        self.log.info(f"self.second_selected_img: {self.second_selected_img}")
+        self.log.info(f"self.second_selected_value: {self.second_selected_value}")
+        self.log.info(f"self.nowPlayer: {self.nowPlayer}")
+        self.log.info(f"self.player1Color: {self.player1Color}")
+        self.log.info(f"self.player2Color: {self.player2Color}")
+        self.log.info(f"self.numCount: {self.numCount}")
+        self.log.info(f"self.allCount: {self.allCount}")
+        self.log.info(f"self.box_open_dict: {self.box_open_dict}")
+        self.log.info("=" * 50)
+
     # 鼠标移动事件：获取鼠标坐标，画一个高亮的圆，表示当前鼠标在这个棋子上
     def move_handler(self, event):
         if game.get_box_xy(event.x, event.y):
             box_x, box_y = game.get_box_xy(event.x, event.y)
             box_center_x = box_x * setting.piece_size + setting.piece_first_x + setting.piece_size / 2
             box_center_y = box_y * setting.piece_size + setting.piece_first_y + setting.piece_size / 2
-            if all_pieces[f"box_{box_x}_{box_y}"]['state'] is not None:
+            if self.all_pieces[f"box_{box_x}_{box_y}"]['state'] is not None:
                 # 将create_image之后选中的图片，叠加到鼠标对应的棋子上
                 self.cv.coords(self.piece_selected, box_center_x, box_center_y)
 
@@ -227,26 +275,11 @@ class Chess():
             box_x, box_y = game.get_box_xy(event.x, event.y)
             #
             box_xy = f'box_{str(box_x)}_{str(box_y)}'
-            box_piece = all_pieces[box_xy]
+            box_piece = self.all_pieces[box_xy]
             piece_state = box_piece['state']
             #
             box_local_x = box_x * setting.piece_size + setting.piece_first_x
             box_local_y = box_y * setting.piece_size + setting.piece_first_y
-            #
-            log.info("鼠标点击事件：判断开始之前：各个参数状态-----开始")
-            log.info(f"all_pieces: {all_pieces}")
-            log.info(f"self.is_first_selected: {self.is_first_selected}")
-            log.info(f"self.first_selected_img: {self.first_selected_img}")
-            log.info(f"self.first_selected_value: {self.first_selected_value}")
-            log.info(f"self.second_selected_img: {self.second_selected_img}")
-            log.info(f"self.second_selected_value: {self.second_selected_value}")
-            log.info(f"self.nowPlayer: {self.nowPlayer}")
-            log.info(f"self.player1Color: {self.player1Color}")
-            log.info(f"self.player2Color: {self.player2Color}")
-            log.info(f"self.numCount: {self.numCount}")
-            log.info(f"self.box_open_dict: {self.box_open_dict}")
-            log.info("鼠标点击事件：判断开始之前：各个参数状态-----结束")
-            log.info("=" * 30)
             # 棋子状态为True
             if piece_state is True:
                 box_color = box_piece['box_key'].split('_')[0]
@@ -262,85 +295,58 @@ class Chess():
                         # 记录下第一次选择的box坐标
                         self.first_selected_value = box_xy
                         # 播放选择棋子的音效
-                        play_music.load_play_sound(setting.xz)
-                        #
-                        log.info("鼠标点击事件：piece_state is True-->self.is_first_selected is True：各个参数状态-----开始")
-                        log.info(f"all_pieces: {all_pieces}")
-                        log.info(f"self.is_first_selected: {self.is_first_selected}")
-                        log.info(f"self.first_selected_img: {self.first_selected_img}")
-                        log.info(f"self.first_selected_value: {self.first_selected_value}")
-                        log.info(f"self.second_selected_img: {self.second_selected_img}")
-                        log.info(f"self.second_selected_value: {self.second_selected_value}")
-                        log.info(f"self.nowPlayer: {self.nowPlayer}")
-                        log.info(f"self.player1Color: {self.player1Color}")
-                        log.info(f"self.player2Color: {self.player2Color}")
-                        log.info(f"self.numCount: {self.numCount}")
-                        log.info("鼠标点击事件：piece_state is True-->self.is_first_selected is True：各个参数状态-----结束")
+                        if self.is_play is True:
+                            play_music.load_play_sound(setting.xz)
+                        self.log.info(f"第一次选择的内容：{self.all_pieces[box_xy]}")
+                        self.print_log()
                     # 第一次选择不为空
                     else:
                         # 第二次选择的棋子坐标，与第一次选择的坐标相同，表示选择同一个棋子，则认为取消选择
                         if self.first_selected_value == box_xy:
                             # 恢复第一次选择的状态
-                            self.cv.delete(self.first_selected_img)
-                            self.is_first_selected = True
-                            self.first_selected_img = None
-                            self.first_selected_value = None
+                            self.reset_first_state()
                             # 播放选择棋子的音效
-                            play_music.load_play_sound(setting.zqwc)
-                            #
-                            log.info("鼠标点击事件：self.first_selected_value[0] == box_xy：各个参数状态-----开始")
-                            log.info(f"all_pieces: {all_pieces}")
-                            log.info(f"self.is_first_selected: {self.is_first_selected}")
-                            log.info(f"self.first_selected_img: {self.first_selected_img}")
-                            log.info(f"self.first_selected_value: {self.first_selected_value}")
-                            log.info(f"self.second_selected_img: {self.second_selected_img}")
-                            log.info(f"self.second_selected_value: {self.second_selected_value}")
-                            log.info(f"self.nowPlayer: {self.nowPlayer}")
-                            log.info(f"self.player1Color: {self.player1Color}")
-                            log.info(f"self.player2Color: {self.player2Color}")
-                            log.info(f"self.numCount: {self.numCount}")
-                            log.info("鼠标点击事件：self.first_selected_value[0] == box_xy：各个参数状态-----结束")
+                            if self.is_play is True:
+                                play_music.load_play_sound(setting.zqwc)
+                            self.log.info(f"第二次选择与第一次相同：{self.all_pieces[box_xy]}")
+                            self.log.info("清空第一次选择的内容")
+                            self.print_log()
                         # 否则就把第一次的选择改为自己方阵的其他棋子
                         else:
+                            # 删除原来选中的棋子选择框
                             self.cv.delete(self.first_selected_img)
+                            # 将新的棋子添加选择框
                             self.first_selected_img = self.cv.create_image(box_local_x, box_local_y, image=piece_selected_img, anchor=NW)
                             # 记录下重新第一次选择的box坐标
                             self.first_selected_value = box_xy
                             # 播放选择棋子的音效
-                            play_music.load_play_sound(setting.xz)
-                            #
-                            log.info("鼠标点击事件：否则就把第一次的选择改为自己方阵的其他棋子：各个参数状态-----开始")
-                            log.info(f"all_pieces: {all_pieces}")
-                            log.info(f"self.is_first_selected: {self.is_first_selected}")
-                            log.info(f"self.first_selected_img: {self.first_selected_img}")
-                            log.info(f"self.first_selected_value: {self.first_selected_value}")
-                            log.info(f"self.second_selected_img: {self.second_selected_img}")
-                            log.info(f"self.second_selected_value: {self.second_selected_value}")
-                            log.info(f"self.nowPlayer: {self.nowPlayer}")
-                            log.info(f"self.player1Color: {self.player1Color}")
-                            log.info(f"self.player2Color: {self.player2Color}")
-                            log.info(f"self.numCount: {self.numCount}")
-                            log.info("鼠标点击事件：否则就把第一次的选择改为自己方阵的其他棋子：各个参数状态-----结束")
+                            if self.is_play is True:
+                                play_music.load_play_sound(setting.xz)
+                            self.log.info(f"第二次选择了自己方阵的其他棋子：{self.all_pieces[box_xy]}")
+                            self.log.info("清空第一次选择的内容，同时把新选择的棋子加载成第一次选择的内容")
+                            self.print_log()
                 # 当前玩家点击了非当前玩家方阵的棋子
                 else:
+                    # 只有第一次的选择有值才有效，没有值则直接跳过
                     if self.is_first_selected is False:
                         self.second_selected_value = box_xy
+                        self.log.info(f"第二次选择了对方方阵的棋子：{self.all_pieces[box_xy]}")
                         # 逻辑处理：比较两个棋子的大小
                         box1_xy = self.first_selected_value
                         box2_xy = self.second_selected_value
-                        box1_name = all_pieces[box1_xy]['box_key']
-                        box2_name = all_pieces[box2_xy]['box_key']
+                        box1_name = self.all_pieces[box1_xy]['box_key']
+                        box2_name = self.all_pieces[box2_xy]['box_key']
+                        self.log.info("=====两个棋子开始比较=====")
+                        self.log.info(f"box1_xy : box1_xy ==> {box1_xy} : {box2_xy}")
+                        self.log.info(f"box1 : box2 ==> {box1_name} : {box2_name}")
                         # vs_res的结果只有'true','false','both'
-                        vs_res = game.piece_VS_piece(box1_xy, box2_xy, box1_name, box2_name, all_pieces)
-                        log.info(f"逻辑处理的结果: {vs_res}")
+                        vs_res = game.piece_VS_piece(box1_xy, box2_xy, box1_name, box2_name, self.all_pieces)
+                        self.log.info(f"比较之后的结果: {vs_res}")
+                        self.log.info("=====两个棋子比较结束=====")
+                        self.print_log()
                         if vs_res == 'false':
                             # 恢复第一次选择的状态
-                            self.cv.delete(self.first_selected_img)
-                            self.is_first_selected = True
-                            self.first_selected_img = None
-                            self.first_selected_value = None
-                            self.second_selected_img = None
-                            self.second_selected_value = None
+                            self.reset_first_state()
                         else:
                             if vs_res == 'true':
                                 # 更新图片
@@ -349,9 +355,9 @@ class Chess():
                                 self.cv.coords(self.box_open_dict[box1_xy], box_local_x, box_local_y)
                                 self.box_open_dict[box1_xy] = None
                                 # 更新all_pieces
-                                all_pieces[box1_xy]['box_key'] = None
-                                all_pieces[box1_xy]['state'] = None
-                                all_pieces[box2_xy]['box_key'] = box1_name
+                                self.all_pieces[box1_xy]['box_key'] = None
+                                self.all_pieces[box1_xy]['state'] = None
+                                self.all_pieces[box2_xy]['box_key'] = box1_name
                             elif vs_res == 'both':
                                 # 更新图片
                                 self.cv.delete(self.box_open_dict[box1_xy])
@@ -359,46 +365,28 @@ class Chess():
                                 self.box_open_dict[box1_xy] = None
                                 self.box_open_dict[box2_xy] = None
                                 # 更新all_pieces
-                                all_pieces[box1_xy]['box_key'] = None
-                                all_pieces[box1_xy]['state'] = None
-                                all_pieces[box2_xy]['box_key'] = None
-                                all_pieces[box2_xy]['state'] = None
+                                self.all_pieces[box1_xy]['box_key'] = None
+                                self.all_pieces[box1_xy]['state'] = None
+                                self.all_pieces[box2_xy]['box_key'] = None
+                                self.all_pieces[box2_xy]['state'] = None
                             # 加载吃棋音效
-                            play_music.load_play_sound(setting.cq)
+                            if self.is_play is True:
+                                play_music.load_play_sound(setting.cq)
                             # 恢复第一次选择的状态
-                            self.cv.delete(self.first_selected_img)
-                            self.is_first_selected = True
-                            self.first_selected_img = None
-                            self.first_selected_value = None
-                            self.second_selected_img = None
-                            self.second_selected_value = None
+                            self.reset_first_state()
                             # 更新playerinfo
                             self.upd_player_info(box_piece['box_key'])
-                            #
-                            log.info("鼠标点击事件：当前玩家选择了对方的棋子：各个参数状态-----开始")
-                            log.info(f"all_pieces: {all_pieces}")
-                            log.info(f"self.is_first_selected: {self.is_first_selected}")
-                            log.info(f"self.first_selected_img: {self.first_selected_img}")
-                            log.info(f"self.first_selected_value: {self.first_selected_value}")
-                            log.info(f"self.second_selected_img: {self.second_selected_img}")
-                            log.info(f"self.second_selected_value: {self.second_selected_value}")
-                            log.info(f"self.nowPlayer: {self.nowPlayer}")
-                            log.info(f"self.player1Color: {self.player1Color}")
-                            log.info(f"self.player2Color: {self.player2Color}")
-                            log.info(f"self.numCount: {self.numCount}")
-                            log.info("鼠标点击事件：当前玩家选择了对方的棋子：各个参数状态-----结束")
-                            log.info("=" * 30)
+                            self.log.info("两个棋子对比结束后，恢复第一次状态，更新玩家信息")
+                            self.print_log()
             # 棋子状态为Flase
             elif piece_state is False:
+                # 如果第一次的选择有值则清空，认为当前用户选择打开其他的棋子
                 if self.is_first_selected is False:
                     # 恢复第一次选择的状态
-                    self.cv.delete(self.first_selected_img)
-                    self.is_first_selected = True
-                    self.first_selected_img = None
-                    self.first_selected_value = None
+                    self.reset_first_state()
                 # 删除原有的棋子背景图片
                 self.cv.delete(self.box_back_dict[box_xy])
-                all_pieces[f'box_{box_x}_{box_y}']['state'] = True
+                self.all_pieces[f'box_{box_x}_{box_y}']['state'] = True
                 # 取得all_pieces中对应的棋子标记
                 box_key = box_piece['box_key']
                 # 根据字符串最后一个字符判断，需要读取的img图片
@@ -410,25 +398,58 @@ class Chess():
                 piece_open = self.cv.create_image(box_local_x, box_local_y, image=piece_img, anchor=NW)
                 self.box_open_dict[box_xy] = piece_open
                 # 播放选择棋子的音效
-                play_music.load_play_sound(setting.xz)
+                if self.is_play is True:
+                    play_music.load_play_sound(setting.xz)
                 # 更新player_info的信息
                 self.upd_player_info(box_key)
-                #
-                log.info("鼠标点击事件：piece_state is False：各个参数状态-----开始")
-                log.info(f"self.is_first_selected: {self.is_first_selected}")
-                log.info(f"self.first_selected_img: {self.first_selected_img}")
-                log.info(f"self.first_selected_value: {self.first_selected_value}")
-                log.info(f"self.second_selected_img: {self.second_selected_img}")
-                log.info(f"self.second_selected_value: {self.second_selected_value}")
-                log.info(f"self.nowPlayer: {self.nowPlayer}")
-                log.info(f"self.player1Color: {self.player1Color}")
-                log.info(f"self.player2Color: {self.player2Color}")
-                log.info(f"self.numCount: {self.numCount}")
-                log.info("鼠标点击事件：piece_state is False：各个参数状态-----结束")
-                log.info("=" * 30)
+                self.log.info("打开棋子，更新玩家信息")
+                self.print_log()
             # 棋子状态为None
             else:
-                pass
+                # 只有第一次的选择有值才有效，没有值则直接跳过
+                if self.is_first_selected is False:
+                    self.second_selected_value = box_xy
+                    #
+                    box1_xy = self.first_selected_value
+                    box2_xy = self.second_selected_value
+                    box1_name = self.all_pieces[box1_xy]['box_key']
+                    box2_name = None
+                    self.log.info("=====两个棋子开始比较=====")
+                    self.log.info(f"box1_xy : box1_xy ==> {box1_xy} : {box2_xy}")
+                    self.log.info(f"box1 : box2 ==> {box1_name} : {box2_name}")
+                    # vs_res的结果只有'true','false'
+                    vs_res = game.piece_VS_piece(box1_xy, box2_xy, box1_name, box2_name, self.all_pieces)
+                    self.log.info(f"比较之后的结果: {vs_res}")
+                    self.log.info("=====两个棋子比较结束=====")
+                    self.print_log()
+                    if vs_res == 'false':
+                        # 恢复第一次选择的状态
+                        self.reset_first_state()
+                    else:
+                        # 更新图片
+                        self.box_open_dict[box2_xy] = self.box_open_dict[box1_xy]
+                        self.cv.coords(self.box_open_dict[box1_xy], box_local_x, box_local_y)
+                        self.box_open_dict[box1_xy] = None
+                        # 更新all_pieces
+                        self.all_pieces[box1_xy]['box_key'] = None
+                        self.all_pieces[box1_xy]['state'] = None
+                        self.all_pieces[box2_xy]['box_key'] = box1_name
+                        self.all_pieces[box2_xy]['state'] = True
+                        # 加载吃棋音效
+                        if self.is_play is True:
+                            play_music.load_play_sound(setting.zqwc)
+                        # 恢复第一次选择的状态
+                        self.reset_first_state()
+                        # 更新playerinfo
+                        self.upd_player_info(box_piece['box_key'])
+                        # 棋子走到方格代表走动了一步，则allCount则要加1
+                        self.allCount += 1
+                        #
+                        self.log.info("box2为空，两个棋子对比结束后，恢复第一次状态，更新玩家信息")
+                        self.print_log()
+            # 用numCount和allCount比较，两者相等才能进入判断是否游戏结束
+            if self.numCount == self.allCount:
+                is_over = game.is_game_over(all_pieces)
 
     # 关闭窗口事件
     def close_window(self):
@@ -442,7 +463,7 @@ class Chess():
         d = dialog.Dialog(self.master, dialog_value)
         if d.num == 0:
             play_music.quit_music()
-            log.info("游戏退出！")
+            self.log.info("游戏退出！")
             self.master.destroy()
 
 
