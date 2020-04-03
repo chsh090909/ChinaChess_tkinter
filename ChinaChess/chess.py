@@ -33,6 +33,8 @@ play_music = PlayMusic(setting)
 class Chess():
     def __init__(self, master):
         self.master = master
+        # 获取系统信息，mac系统flag=1，windows系统flag=2
+        self.system_flag = common.get_system_name()
         # 打印日志到控制台
         self.log = logger.printLogToSystem(is_out_file=False)
         # 初始化所有棋子
@@ -60,8 +62,6 @@ class Chess():
         self.allCount = 48
         # 设置走棋音效是否播放开关
         self.is_play = True
-        # 获取系统信息，mac系统flag=1，windows系统flag=2
-        self.system_flag = common.get_system_name()
         # 加载目录菜单
         self.init_menu()
         # 加载窗体内容
@@ -185,26 +185,31 @@ class Chess():
         return piece_selected
 
     # 加载玩家信息部分的内容
-    def load_player_info(self):
+    def load_player_info(self, layout='default'):
         self.cv.create_rectangle(0, 495, 1030, 500, fill='red', outline='red')
-        self.cv.create_rectangle(513, 495, 517, 680, fill='red', outline='red')
-        #
-        player_name_font = (setting.font_style, setting.font_player_size)
-        player_info_font = (setting.font_style, setting.font_info_size)
-        # 玩家一
-        self.player1_name = self.cv.create_text(105, 548, text=self.player1, font=player_name_font, anchor=CENTER, activefill='red')
-        self.player1_img = self.cv.create_image(100, 620, image=None)
-        self.player1_state = self.cv.create_text(220, 517, text=f'状态：正在走棋。。。', font=player_info_font, anchor=NW)
-        self.player1_color = self.cv.create_text(220, 552, text=f'执方：', font=player_info_font, anchor=NW)
-        self.player1_won = self.cv.create_text(220, 587, text=f'胜利：0 局', font=player_info_font, anchor=NW)
-        self.player1_tie = self.cv.create_text(220, 622, text=f'打平：0 局', font=player_info_font, anchor=NW)
-        # 玩家二
-        self.player2_name = self.cv.create_text(618, 548, text=self.player2, font=player_name_font, anchor=CENTER, activefill='red')
-        self.player2_img = self.cv.create_image(615, 620, image=None)
-        self.player2_state = self.cv.create_text(735, 517, text=f'状态：走棋完毕！', font=player_info_font, anchor=NW)
-        self.player2_color = self.cv.create_text(735, 552, text=f'执方：', font=player_info_font, anchor=NW)
-        self.player2_won = self.cv.create_text(735, 587, text=f'胜利：0 局', font=player_info_font, anchor=NW)
-        self.player2_tie = self.cv.create_text(735, 622, text=f'打平：0 局', font=player_info_font, anchor=NW)
+        # self.cv.create_rectangle(513, 495, 517, 680, fill='red', outline='red')
+        self.cv.create_image(515, 590, image=vs_img)
+        if layout == 'default':
+            # 定义字体
+            player_name_font = (setting.font_style, 44)
+            player_info_font = (setting.font_style, 28)
+            font_color = setting.font_color
+            # 玩家一
+            self.player1_name = self.cv.create_text(184, 525, text=self.player1, font=player_name_font, fill=None)
+            self.player1_img = self.cv.create_image(413, 565, image=None)
+            self.player1_color = self.cv.create_text(413, 625, text=f' ', font=player_name_font, fill=None)
+            self.player1_state = self.cv.create_text(35, 560, text=f'状态：正在走棋。。。', fill='#006400', font=player_info_font, anchor=NW)
+            self.player1_won = self.cv.create_text(35, 595, text=f'胜利：0 局', fill=font_color, font=player_info_font, anchor=NW)
+            self.player1_tie = self.cv.create_text(35, 630, text=f'打平：0 局', fill=font_color, font=player_info_font, anchor=NW)
+            # 玩家二
+            self.player2_name = self.cv.create_text(842, 525, text=self.player2, font=player_name_font, fill=None)
+            self.player2_img = self.cv.create_image(620, 565, image=None)
+            self.player2_color = self.cv.create_text(620, 625, text=f' ', font=player_name_font, fill=None)
+            self.player2_state = self.cv.create_text(710, 560, text=f'状态：走棋完成！', fill=font_color, font=player_info_font, anchor=NW)
+            self.player2_won = self.cv.create_text(710, 595, text=f'胜利：0 局', fill=font_color, font=player_info_font, anchor=NW)
+            self.player2_tie = self.cv.create_text(710, 630, text=f'打平：0 局', fill=font_color, font=player_info_font, anchor=NW)
+        else:
+            pass
 
     # 更新player_info
     def upd_player_info(self, box_key):
@@ -212,25 +217,29 @@ class Chess():
         if self.numCount == 1:
             self.player1Color = box_key.split('_')[0]
             if self.player1Color == 'red':
+                self.cv.itemconfig(self.player1_name, fill='red')
+                self.cv.itemconfig(self.player2_name, fill='black')
                 self.cv.itemconfig(self.player1_img, image=red_jiang_img)
                 self.cv.itemconfig(self.player2_img, image=black_jiang_img)
-                self.cv.itemconfig(self.player1_color, text=f'执方：红方')
-                self.cv.itemconfig(self.player2_color, text=f'执方：黑方')
+                self.cv.itemconfig(self.player1_color, text=f'红方', fill='red')
+                self.cv.itemconfig(self.player2_color, text=f'黑方', fill='black')
                 self.player2Color = 'black'
             else:
+                self.cv.itemconfig(self.player1_name, fill='black')
+                self.cv.itemconfig(self.player2_name, fill='red')
                 self.cv.itemconfig(self.player1_img, image=black_jiang_img)
                 self.cv.itemconfig(self.player2_img, image=red_jiang_img)
-                self.cv.itemconfig(self.player1_color, text=f'执方：黑方')
-                self.cv.itemconfig(self.player2_color, text=f'执方：红方')
+                self.cv.itemconfig(self.player1_color, text=f'黑方', fill='black')
+                self.cv.itemconfig(self.player2_color, text=f'红方', fill='red')
                 self.player2Color = 'red'
         self.nowPlayer = self.player2 if self.nowPlayer == self.player1 else self.player1
         #
         if self.numCount % 2 == 1:
-            self.cv.itemconfig(self.player1_state, text=f'状态：走棋完毕！')
-            self.cv.itemconfig(self.player2_state, text=f'状态：正在走棋。。。')
+            self.cv.itemconfig(self.player1_state, text=f'状态：走棋完毕！', fill=setting.font_color)
+            self.cv.itemconfig(self.player2_state, text=f'状态：正在走棋。。。', fill='#006400')
         else:
-            self.cv.itemconfig(self.player1_state, text=f'状态：正在走棋。。。')
-            self.cv.itemconfig(self.player2_state, text=f'状态：走棋完毕！')
+            self.cv.itemconfig(self.player1_state, text=f'状态：正在走棋。。。', fill='#006400')
+            self.cv.itemconfig(self.player2_state, text=f'状态：走棋完毕！', fill=setting.font_color)
 
     # 重置first—select状态
     def reset_first_state(self):
@@ -344,11 +353,11 @@ class Chess():
                         self.log.info(f"比较之后的结果: {vs_res}")
                         self.log.info("=====两个棋子比较结束=====")
                         self.print_log()
-                        if vs_res == 'false':
+                        if vs_res is False:
                             # 恢复第一次选择的状态
                             self.reset_first_state()
                         else:
-                            if vs_res == 'true':
+                            if vs_res is True:
                                 # 更新图片
                                 self.cv.delete(self.box_open_dict[box2_xy])
                                 self.box_open_dict[box2_xy] = self.box_open_dict[box1_xy]
@@ -358,7 +367,7 @@ class Chess():
                                 self.all_pieces[box1_xy]['box_key'] = None
                                 self.all_pieces[box1_xy]['state'] = None
                                 self.all_pieces[box2_xy]['box_key'] = box1_name
-                            elif vs_res == 'both':
+                            elif vs_res is None:
                                 # 更新图片
                                 self.cv.delete(self.box_open_dict[box1_xy])
                                 self.cv.delete(self.box_open_dict[box2_xy])
@@ -417,12 +426,12 @@ class Chess():
                     self.log.info("=====两个棋子开始比较=====")
                     self.log.info(f"box1_xy : box1_xy ==> {box1_xy} : {box2_xy}")
                     self.log.info(f"box1 : box2 ==> {box1_name} : {box2_name}")
-                    # vs_res的结果只有'true','false'
+                    # vs_res的结果只有true,false
                     vs_res = game.piece_VS_piece(box1_xy, box2_xy, box1_name, box2_name, self.all_pieces)
                     self.log.info(f"比较之后的结果: {vs_res}")
                     self.log.info("=====两个棋子比较结束=====")
                     self.print_log()
-                    if vs_res == 'false':
+                    if vs_res is False:
                         # 恢复第一次选择的状态
                         self.reset_first_state()
                     else:
@@ -448,8 +457,8 @@ class Chess():
                         self.log.info("box2为空，两个棋子对比结束后，恢复第一次状态，更新玩家信息")
                         self.print_log()
             # 用numCount和allCount比较，两者相等才能进入判断是否游戏结束
-            if self.numCount == self.allCount:
-                is_over = game.is_game_over(all_pieces)
+            if self.numCount >= self.allCount:
+                is_over = game.is_game_over(self.all_pieces)
 
     # 关闭窗口事件
     def close_window(self):
@@ -484,11 +493,13 @@ if __name__ == '__main__':
     # 加载棋子选中时的颜色图片
     piece_selected_img = PhotoImage(file=setting.piece_selected)
     # 加载关于窗体中的favicon图标
-    red_jiang_img = common.change_img('images/piece_red_jiang.gif', width=64, height=64)
-    black_jiang_img = common.change_img('images/piece_black_jiang.gif', width=64, height=64)
+    red_jiang_img = common.change_img('images/piece_red_jiang.gif', width=80, height=80)
+    black_jiang_img = common.change_img('images/piece_black_jiang.gif', width=80, height=80)
     # 加载所有棋子图片
     pieces_dict = game.get_piece_image()
     pieces_img = common.change_img(img=pieces_dict)
+    # 加载vs图片
+    vs_img = common.change_img('images/vs1.gif', width=80, height=80)
     # 加载背景音乐
     play_music.is_not_busy()
     #

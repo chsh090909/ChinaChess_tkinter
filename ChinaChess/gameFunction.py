@@ -136,7 +136,7 @@ class GameFunction():
                     # 大吃小，除非jiang和zu或pao同时出现
                     if box1_value_1 == 'jiang' and (box2_value_1 in ['zu', 'pao']):
                         self.logger.info("false原因：jiang在和zu或者pao比较")
-                        return 'false'
+                        return False
                     else:
                         return self.__other_vs_piece(box1_x, box1_y, box2_x, box2_y, piece_equal=False)
                 else:
@@ -145,7 +145,7 @@ class GameFunction():
                         return self.__other_vs_piece(box1_x, box1_y, box2_x, box2_y, piece_equal=False)
                     else:
                         self.logger.info("false原因：box1比box2还小")
-                        return 'false'
+                        return False
 
     # pao的比较
     def __pao_vs_piece(self, box1_x, box1_y, box2_x, box2_y, all_pieces, piece_equal=True):
@@ -158,13 +158,13 @@ class GameFunction():
                     break
             if between_state_have == 1:
                 if piece_equal is True:
-                    self.logger.info("both：box1和box2相同")
-                    return 'both'
+                    self.logger.info("None：box1和box2相同")
+                    return None
                 else:
-                    return 'true'
+                    return True
             else:
                 self.logger.info("false原因：box1和box2之间，在y轴上没有棋子，或者有大于2个的棋子")
-                return 'false'
+                return False
         elif box1_y == box2_y and box2_x - box1_x > 1:
             between_state_have = 0
             for i in range(box1_x + 1, box2_x):
@@ -174,33 +174,110 @@ class GameFunction():
                     break
             if between_state_have == 1:
                 if piece_equal is True:
-                    self.logger.info("both：box1和box2相同")
-                    return 'both'
+                    self.logger.info("None：box1和box2相同")
+                    return None
                 else:
-                    return 'true'
+                    return True
             else:
                 self.logger.info("false原因：box1和box2之间，在x轴上没有棋子，或者有大于2个的棋子")
-                return 'false'
+                return False
         else:
             self.logger.info("false原因：box1和box2不在同一条x轴或y轴上")
-            return 'false'
+            return False
 
     # 其他棋子的比较
     def __other_vs_piece(self, box1_x, box1_y, box2_x, box2_y, piece_equal=True):
         if (box1_x == box2_x and box2_y - box1_y == 1) or (box1_y == box2_y and box2_x - box1_x == 1):
             if piece_equal is True:
-                self.logger.info("both：box1和box2相同")
-                return 'both'
+                self.logger.info("None：box1和box2相同")
+                return None
             else:
-                return 'true'
+                return True
         else:
             self.logger.info("false原因：box1和box2不在同一条x轴或y轴上")
-            return 'false'
+            return False
 
     # 游戏结束判断
-    def is_game_over(self, all_pieces):
-        # 总走棋步数必须大于48步
-        pass
+    def is_game_over(self, all_pieces, nowPlayer, player1Color, player2Color):
+        # 循环all_pieces中的state得到棋子状态
+        true_count = 0
+        none_count = 0
+        new_pieces = {}
+        for key, value in all_pieces.items():
+            for key1, value1 in value.items():
+                if key1 == 'state':
+                    if value1 is True:
+                        true_count += 1
+                        new_pieces[all_pieces[key]['box_key']] = key
+                    elif value1 is False:
+                        # 如果查到state的状态为false，立即return
+                        return 'none'
+                    elif value1 is None:
+                        none_count += 1
+        self.logger.info(f"true_count: {true_count}")
+        self.logger.info(f"none_count: {none_count}")
+        self.logger.info(f"new_pieces: {new_pieces}")
+        # 如果allpieces全部为none，则为平局
+        if none_count == 32:
+            return 'tie'
+        else:
+            # 如果只有一个棋子，则取棋子的颜色return
+            if true_count == 1:
+                key_list = list(new_pieces.keys())
+                box_color = key_list[0].split('_')[0]
+                return box_color
+            else:
+                # 取红黑棋子分别占有多少
+                red_count = 0
+                black_count = 0
+                box_count = len(new_pieces)
+                for key, value in new_pieces.items():
+                    box_color = key.split('_')[0]
+                    if box_color == 'red':
+                        red_count += 1
+                    else:
+                        black_count += 1
+                self.logger.info(f"red_count: {red_count}")
+                self.logger.info(f"black_count: {black_count}")
+                self.logger.info(f"box_count: {box_count}")
+                # 如果全部为红色或者黑色，则return
+                if red_count == box_count:
+                    return 'red'
+                if black_count == box_count:
+                    return 'black'
+                # 总数为2，红黑棋子各占1个
+                if box_count ==2 and red_count == 1:
+                    red_x = 0
+                    red_y = 0
+                    red_value = ''
+                    black_x = 0
+                    black_y = 0
+                    black_value = ''
+                    for key, value in new_pieces.items():
+                        box_color = key.split('_')[0]
+                        box_value = key.split('_')[1]
+                        if box_color == 'red':
+                            red_x = value.split('_')[1]
+                            red_y = value.split('_')[2]
+                            red_value = box_value[:-1] if box_value[-1:].isnumeric() else box_value
+                        else:
+                            black_x = value.split('_')[1]
+                            black_y = value.split('_')[2]
+                            black_value = box_value[:-1] if box_value[-1:].isnumeric() else box_value
+                    #
+                    if nowPlayer == self.setting.player1_name and player1Color == 'red':
+                        pass
+                # 总数>2，只判断一方只为1个的情况
+                if box_count > 2:
+                    if red_count == 1:
+                        pass
+                    if black_count == 1:
+                        pass
+
+
+
+
+
 
 
 if __name__ == '__main__':
