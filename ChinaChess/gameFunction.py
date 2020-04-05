@@ -9,6 +9,7 @@
 @content:
 """
 import random
+from math import fabs
 from ChinaChess.loggerPrint import LoggerPrint
 
 class GameFunction():
@@ -59,7 +60,7 @@ class GameFunction():
         max_area_x = min_area_x + 8 * self.setting.piece_size
         max_area_y = min_area_y + 4 * self.setting.piece_size
         # 确认鼠标是在棋盘上有效的矩形范围之内
-        if (min_area_x < event_x < max_area_x) and (min_area_x < event_y < max_area_y):
+        if (min_area_x < event_x < max_area_x) and (min_area_y < event_y < max_area_y):
             mouse_x_not = (i * 100 + min_area_x for i in range(1, 9))
             mouse_y_not = (i * 100 + min_area_y for i in range(1, 5))
             # 鼠标不能在棋盘线上
@@ -228,6 +229,7 @@ class GameFunction():
                 return box_color
             else:
                 # 取红黑棋子分别占有多少
+                value_list = self.setting.pieces_list
                 red_count = 0
                 black_count = 0
                 box_count = len(new_pieces)
@@ -264,21 +266,63 @@ class GameFunction():
                             black_x = value.split('_')[1]
                             black_y = value.split('_')[2]
                             black_value = box_value[:-1] if box_value[-1:].isnumeric() else box_value
+                    red_value_index = value_list.index(red_value)
+                    black_value_index = value_list.index(black_value)
                     #
-                    if nowPlayer == self.setting.player1_name and player1Color == 'red':
-                        pass
+                    if red_value == black_value or \
+                            (red_value == 'jiang' and black_value == 'pao') or \
+                            (red_value in ['pao', 'zu'] and black_value in ['pao', 'zu']):
+                        return 'tie'
+                    # 当前玩家和玩家方阵为红方，且红方的棋子比黑方的棋子大，则他们相邻比较的时候就会是平局，红方无法吃掉黑方
+                    if (nowPlayer == self.setting.player1_name and player1Color == 'red') or \
+                            (nowPlayer == self.setting.player2_name and player2Color == 'red'):
+                        if red_value_index < black_value_index:
+                            if (red_x == black_x and fabs(red_y - black_y) == 1) or (
+                                    red_y == black_y and fabs(red_x - black_x) == 1):
+                                return 'tie'
+                    # 黑方也是一样
+                    elif nowPlayer == self.setting.player1_name and player1Color == 'black' or \
+                            (nowPlayer == self.setting.player2_name and player2Color == 'black'):
+                        if red_value_index > black_value_index:
+                            if (red_x == black_x and fabs(red_y - black_y) == 1) or (
+                                    red_y == black_y and fabs(red_x - black_x) == 1):
+                                return 'tie'
                 # 总数>2，只判断一方只为1个的情况
                 if box_count > 2:
+                    # 红方只有一个棋子，如果这个棋子在棋盘上黑方有其他棋子能吃掉它，则红方就一定会输
+                    # 相反如果红方的这个棋子在棋盘上黑方没有棋子能吃掉它，那么就只能是平局了
+                    red_index = 0
+                    black_index = 0
+                    red_value = ''
+                    black_value = ''
+                    index_list = []
                     if red_count == 1:
-                        pass
+                        self.__one_vs_more(new_pieces, 'red', value_list)
                     if black_count == 1:
-                        pass
+                        self.__one_vs_more(new_pieces, 'black', value_list)
 
-
-
-
-
-
+    # 判断某一方只有一个棋子时
+    def __one_vs_more(self, new_pieces, one_color, value_list):
+        index_list = []
+        for key, value in new_pieces.items():
+            box_color = key.split('_')[0]
+            box_value = key.split('_')[1]
+            if box_color == one_color:
+                one_value = box_value[:-1] if box_value[-1:].isnumeric() else box_value
+                one_index = value_list.index(one_value)
+            else:
+                more_value = box_value[:-1] if box_value[-1:].isnumeric() else box_value
+                index_list.append(value_list.index(more_value))
+        # 红方只有一个pao，黑方也只有pao和zu，则为平局
+        if one_index == 5 and [0, 1, 2, 3, 4] not in index_list and len(index_list) < 4:
+            return 'tie'
+        for index in index_list:
+            if one_index < index:
+                # 要排除jiang和zu同时存在的情况
+                if one_index == 0 and index == 6:
+                    pass
+                else:
+                    return 'tie'
 
 if __name__ == '__main__':
     from ChinaChess.settings import Settings

@@ -18,9 +18,9 @@ from ChinaChess.common import Commmon
 # 自定义对话框类，继承Toplevel
 class MyDialog(Toplevel):
     # 定义构造方法
-    def __init__(self, parent, title=None, modal=True, img=None):
+    def __init__(self, parent, widget, title=None, modal=True, img=None):
         self.setting = Settings()
-        self.common = Commmon()
+        self.common = Commmon(self.setting)
         self.img = img
         self.width = 360
         self.height = 450
@@ -36,7 +36,10 @@ class MyDialog(Toplevel):
         # 创建对话框的主体内容
         frame = Frame(self)
         # 调用init_widgets方法来初始化对话框界面
-        self.initial_focus = self.init_widgets(frame)
+        if widget == 'about':
+            self.initial_focus = self.init_widgets(frame)
+        elif widget == 'over':
+            pass
         frame.pack()
         # 根据modal选项设置是否为模式对话框
         if modal: self.grab_set()
@@ -52,7 +55,7 @@ class MyDialog(Toplevel):
         self.initial_focus.focus_set()
         self.wait_window(self)
 
-    # 通过该方法来创建自定义对话框的内容
+    # 创建自定义对话框的内容--关于对话框
     def init_widgets(self, master):
         # 创建画布，获得焦点
         cv = Canvas(master, bg=self.setting.bg_color, width=self.width, height=self.height)
@@ -67,7 +70,7 @@ class MyDialog(Toplevel):
         # 添加一个文本域，只读模式，显示版本更新信息
         text_area_font = ('华文新魏', 14)
         text_area = Text(cv, font=text_area_font, background=self.setting.bg_color)
-        text_area.place(x=10, y=90, width=self.width-20, height=self.height-145)
+        text_area.place(x=10, y=96, width=self.width-20, height=self.height-150)
         # 读取版本更新文件内容，加载到文本域中
         text_area_value = self.common.read_file(self.setting.version_file)
         text_area.insert(0.0, text_area_value)

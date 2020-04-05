@@ -9,6 +9,9 @@
 @content: 提供公共方法
 """
 import platform
+import sys
+import time
+import os
 from PIL import Image, ImageTk
 from ChinaChess.customException import *
 from ChinaChess.loggerPrint import LoggerPrint
@@ -17,7 +20,7 @@ class Commmon():
     def __init__(self, setting):
         self.setting = setting
         self.__logger = LoggerPrint(self.setting)
-        self.log = self.__logger.printLogToSystem()
+        self.log = self.__logger.printLogToSystem(False)
 
     # 获取当前系统的名称
     def get_system_name(self):
@@ -49,7 +52,8 @@ class Commmon():
                 img_dict[key] = changed_img
             return img_dict
         else:
-            raise ImgNotFound('传入图片格式不正确或者图片不存在！')
+             raise ImgNotFound('传入图片格式不正确或者图片不存在！')
+
 
     # 读取文件
     def read_file(self, filename, flag=None):
@@ -60,7 +64,17 @@ class Commmon():
                 elif flag == 'info':
                     return f.readlines()
         except Exception as e:
-            print(e)
+            self.log.exception('读取文件异常！')
+
+    # 写入info文件
+    def write_file(self, filename, write_value):
+        if isinstance(write_value, str):
+            with open(filename, 'ab+') as f:
+                writestr = (write_value + os.linesep).encode('utf-8')
+                f.write(writestr)
+        elif isinstance(write_value, list):
+            with open(filename, 'w+', encoding='utf-8') as f:
+                f.writelines(write_value)
 
     # 获取当前系统时间，格式化后添加到文件名称中
     def format_now_time(self):
@@ -71,6 +85,28 @@ class Commmon():
     def get_now_time(self):
         ntime = time.strftime('%Y-%m-%d %H:%M:%S')
         return ntime
+
+    # 计算两个时间之间的时间差，返回str
+    def how_long_time(self, begintime, endtime):
+        howlongdays = (endtime - begintime).days
+        howlongsecs = (endtime - begintime).seconds
+        hours = int(howlongsecs / 3600)
+        mins = int((howlongsecs % 3600) / 60)
+        secs = (howlongsecs % 3600) % 60
+        how_long = ''
+        if howlongdays != 0:
+            howlongdays = '%s天' % (str(howlongdays))
+            how_long += howlongdays
+        if hours != 0:
+            hours = '%s小时' % (str(hours))
+            how_long += hours
+        if mins != 0:
+            mins = '%s分' % (str(mins))
+            how_long += mins
+        if secs != 0:
+            secs = '%s秒' % (str(secs))
+            how_long += secs
+        return how_long
 
 if __name__ == '__main__':
     common = Commmon()
