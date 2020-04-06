@@ -18,7 +18,7 @@ from ChinaChess.common import Commmon
 # 自定义对话框类，继承Toplevel
 class MyDialog(Toplevel):
     # 定义构造方法
-    def __init__(self, parent, widget, title=None, modal=True, img=None):
+    def __init__(self, parent, widget, title=None, modal=True, img=None, **kwargs):
         self.setting = Settings()
         self.common = Commmon(self.setting)
         self.img = img
@@ -26,6 +26,7 @@ class MyDialog(Toplevel):
         self.height = 450
         self.frame_x = 350
         self.frame_y = 100
+        self.kwargs = kwargs
 
         Toplevel.__init__(self, parent)
         self.transient(parent)
@@ -37,9 +38,9 @@ class MyDialog(Toplevel):
         frame = Frame(self)
         # 调用init_widgets方法来初始化对话框界面
         if widget == 'about':
-            self.initial_focus = self.init_widgets(frame)
+            self.initial_focus = self.init_widget_about(frame)
         elif widget == 'over':
-            pass
+            self.initial_focus = self.init_widget_over(frame)
         frame.pack()
         # 根据modal选项设置是否为模式对话框
         if modal: self.grab_set()
@@ -56,7 +57,7 @@ class MyDialog(Toplevel):
         self.wait_window(self)
 
     # 创建自定义对话框的内容--关于对话框
-    def init_widgets(self, master):
+    def init_widget_about(self, master):
         # 创建画布，获得焦点
         cv = Canvas(master, bg=self.setting.bg_color, width=self.width, height=self.height)
         cv.pack(fill=BOTH, expand=YES)
@@ -82,6 +83,30 @@ class MyDialog(Toplevel):
         text_area.configure(state='disabled')
         # 添加一个关闭按钮
         close_btn = ttk.Button(cv, text='关 闭')
+        close_btn.place(x=140, y=410)
+        close_btn.bind('<ButtonRelease-1>', self.cancel_click)
+
+    # 创建自定义对话框的内容--游戏结束对话框
+    def init_widget_over(self, master):
+        # 创建画布，获得焦点
+        cv = Canvas(master, bg=self.setting.bg_color, width=self.width, height=self.height)
+        cv.pack(fill=BOTH, expand=YES)
+        cv.focus_set()
+        # 添加一个图片
+        cv.create_image(self.width/2, 90, image=self.img, anchor=CENTER)
+        # 添加一行文字
+        totalCount = self.kwargs.get('totalCount')
+        write_won = self.kwargs.get('writeWin')
+        font_show_won = (self.setting.font_style, 25)
+        font_show_continue = ('华文新魏', 14)
+        text_show_over = f"第{totalCount}局游戏结束！"
+        text_show_won = f"{write_won}"
+        text_show_continue = f"(请点击确定按钮开始下一局游戏)"
+        cv.create_text(self.width/2, 205, text=text_show_over, font=font_show_won, anchor=CENTER)
+        cv.create_text(self.width/2, 240, text=text_show_won, font=font_show_won, anchor=CENTER)
+        cv.create_text(self.width/2, 275, text=text_show_continue, font=font_show_continue, anchor=CENTER)
+        # 添加一个关闭按钮
+        close_btn = ttk.Button(cv, text='确 定')
         close_btn.place(x=140, y=410)
         close_btn.bind('<ButtonRelease-1>', self.cancel_click)
 

@@ -106,7 +106,7 @@ class Chess():
             # 为windows系统添加退出游戏菜单
             server_menu.add_command(label='退出游戏', command=self.close_window, compound=LEFT)
         # 为operation_menu添加菜单项
-        operation_menu.add_command(label='悔棋', command=None, compound=LEFT)
+        operation_menu.add_command(label='悔棋', command=self.break_piece, compound=LEFT)
         # 加分割条
         operation_menu.add_separator()
         # 为背景音乐子菜单创建目录
@@ -160,6 +160,10 @@ class Chess():
             # 将走棋音效是否播放开关置为True
             self.is_play = True
             self.log.info("走棋音效打开！")
+
+    # 为悔棋菜单，设置功能
+    def break_piece(self):
+        self.reset_game_start('')
 
     # 初始化窗体内容
     def init_widgets(self):
@@ -269,18 +273,48 @@ class Chess():
         self.second_selected_value = None
 
     # 重置游戏开始状态
-    def reset_game_start(self):
+    def reset_game_start(self, write_won):
+        # 加载游戏胜利对话框
+        MyDialog(self.master, widget='over', title=f'第{self.totalCount}局游戏结束', img=win_img, totalCount=self.totalCount, writeWin=write_won)
+        # 清空棋盘
+        for i in range(8):
+            for j in range(4):
+                if self.box_open_dict[f"box_{i}_{j}"] is not None:
+                    self.cv.delete(self.box_open_dict[f"box_{i}_{j}"])
+        # 重新加载棋子背面图片
+        self.box_back_dict = self.load_pieces_back()
+        # 加载最开始的玩家信息
+        self.cv.itemconfig(self.player1_name, fill=None)
+        self.cv.delete(self.player1_img)
+        self.player1_img = self.cv.create_image(413, 565, image=None)
+        self.cv.itemconfig(self.player2_name, fill=None)
+        self.cv.delete(self.player2_img)
+        self.player2_img = self.cv.create_image(620, 565, image=None)
+        self.cv.itemconfig(self.player1_color, text=' ')
+        self.cv.itemconfig(self.player2_color, text=' ')
+        self.cv.itemconfig(self.player1_state, text=f'状态：正在走棋。。。')
+        self.cv.itemconfig(self.player2_state, text=f'状态：走棋完成！')
+        if write_won == f"恭喜玩家： {setting.player1_name} 胜利!":
+            self.cv.itemconfig(self.player1_won, text=f'胜利：{self.Player1WonCount} 局')
+        elif write_won == f"恭喜玩家： {setting.player2_name} 胜利!":
+            self.cv.itemconfig(self.player2_won, text=f'胜利：{self.Player2WonCount} 局')
+        elif write_won == "本局游戏为平局!":
+            self.cv.itemconfig(self.player1_tie, text=f'打平：{self.tieCount} 局')
+            self.cv.itemconfig(self.player2_tie, text=f'打平：{self.tieCount} 局')
+        self.log.info("游戏结束：初始化各个参数==>开始")
+        # 初始化所有棋子
+        self.all_pieces = game.box_pieces()
         #
         self.reset_first_state()
-        #
-        self.box_open_dict = {}
         # 初始化玩家消息参数
+        self.box_open_dict = {}
         self.nowPlayer = self.player1
         self.player1Color = None
         self.player2Color = None
         self.numCount = 0
         self.allCount = 48
-        #
+        self.log.info("游戏结束：初始化各个参数==>结束")
+        self.log.info(f"游戏重新开始后all_pieces: {self.all_pieces}")
 
     # 打印各个参数的值
     def print_log(self):
@@ -297,9 +331,6 @@ class Chess():
         self.log.info(f"self.allCount: {self.allCount}")
         self.log.info(f"self.box_open_dict: {self.box_open_dict}")
         self.log.info("=" * 50)
-
-    # 为info文件写入最后的结束语
-
 
     # 鼠标移动事件：获取鼠标坐标，画一个高亮的圆，表示当前鼠标在这个棋子上
     def move_handler(self, event):
@@ -414,17 +445,17 @@ class Chess():
                             # 加载吃棋音效
                             if self.is_play is True:
                                 play_music.load_play_sound(setting.cq)
+                            # 更新playerinfo
+                            self.upd_player_info(box_piece['box_key'])
                             # 走棋成功，写入info文件
                             self.write_str = f"时间:{common.get_now_time()}|步数:{self.numCount}|总步数:{self.allCount}|"
                             self.write_str += f"当前玩家:{self.nowPlayer}|走棋内容:"
                             self.write_str += f"第一步:{self.all_pieces[self.first_selected_value]}==>"
-                            self.write_str += f"第二步:{self.all_pieces[self.first_selected_value]}"
+                            self.write_str += f"第二步:{self.all_pieces[self.second_selected_value]}"
                             common.write_file(filename=self.info_file, write_value=self.write_str)
                             common.write_file(filename=self.info_file, write_value=json.dumps(self.all_pieces))
                             # 恢复第一次选择的状态
                             self.reset_first_state()
-                            # 更新playerinfo
-                            self.upd_player_info(box_piece['box_key'])
                             self.log.info("两个棋子对比结束后，恢复第一次状态，更新玩家信息")
                             self.print_log()
 
@@ -434,7 +465,7 @@ class Chess():
                 if self.is_first_selected is False:
                     # 恢复第一次选择的状态
                     self.reset_first_state()
-                # 删除原有的棋子背景图片
+                # 删除原有的棋子背面图片
                 self.cv.delete(self.box_back_dict[box_xy])
                 self.all_pieces[f'box_{box_x}_{box_y}']['state'] = True
                 # 取得all_pieces中对应的棋子标记
@@ -450,14 +481,15 @@ class Chess():
                 # 播放选择棋子的音效
                 if self.is_play is True:
                     play_music.load_play_sound(setting.xz)
+                # 更新player_info的信息
+                self.upd_player_info(box_key)
                 # 走棋成功，写入info文件
                 self.write_str = f"时间:{common.get_now_time()}|步数:{self.numCount}|总步数:{self.allCount}|"
                 self.write_str += f"当前玩家:{self.nowPlayer}|走棋内容:"
                 self.write_str += f"打开棋子:{self.all_pieces[box_xy]}"
                 common.write_file(filename=self.info_file, write_value=self.write_str)
                 common.write_file(filename=self.info_file, write_value=json.dumps(self.all_pieces))
-                # 更新player_info的信息
-                self.upd_player_info(box_key)
+                #
                 self.log.info("打开棋子，更新玩家信息")
                 self.print_log()
             # 棋子状态为None
@@ -494,19 +526,19 @@ class Chess():
                         # 加载吃棋音效
                         if self.is_play is True:
                             play_music.load_play_sound(setting.zqwc)
+                        # 更新playerinfo
+                        self.upd_player_info(box_piece['box_key'])
                         # 棋子走到方格代表走动了一步，则allCount则要加1
                         self.allCount += 1
                         # 走棋成功，写入info文件
                         self.write_str = f"时间:{common.get_now_time()}|步数:{self.numCount}|总步数:{self.allCount}|"
                         self.write_str += f"当前玩家:{self.nowPlayer}|走棋内容:"
                         self.write_str += f"第一步:{self.all_pieces[self.first_selected_value]}==>"
-                        self.write_str += f"移动到:{self.all_pieces[self.first_selected_value]}"
+                        self.write_str += f"移动到:{self.all_pieces[self.second_selected_value]}"
                         common.write_file(filename=self.info_file, write_value=self.write_str)
                         common.write_file(filename=self.info_file, write_value=json.dumps(self.all_pieces))
                         # 恢复第一次选择的状态
                         self.reset_first_state()
-                        # 更新playerinfo
-                        self.upd_player_info(box_piece['box_key'])
                         #
                         self.log.info("box2为空，两个棋子对比结束后，恢复第一次状态，更新玩家信息")
                         self.print_log()
@@ -524,12 +556,12 @@ class Chess():
                             self.log.info(f"本局游戏结束！！玩家1： {setting.player1_name} {is_over}  胜利!")
                             self.totalCount += 1
                             self.Player1WonCount += 1
-                            write_won += f"玩家1： {setting.player1_name} {is_over}  胜利!"
+                            write_won += f"恭喜玩家： {setting.player1_name} 胜利!"
                         else:
                             self.log.info(f"本局游戏结束！！玩家2： {setting.player2_name} {is_over} 胜利!")
                             self.totalCount += 1
                             self.Player2WonCount += 1
-                            write_won += f"玩家1： {setting.player1_name} {is_over}  胜利!"
+                            write_won += f"恭喜玩家： {setting.player2_name} 胜利!"
                     elif is_over == 'tie':
                         self.log.info(f"本局游戏结束！！本局游戏为平局!")
                         self.totalCount += 1
@@ -542,6 +574,7 @@ class Chess():
                     common.write_file(filename=self.info_file, write_value=self.write_str)
                     common.write_file(filename=self.info_file, write_value=end_str)
                     # 重新开始游戏，重置各个参数
+                    self.reset_game_start(write_won)
 
     # 关闭窗口事件
     def close_window(self):
@@ -572,6 +605,7 @@ class Chess():
                     game_over_str += f"，打平 {self.tieCount} 局"
             game_over_str += "*" * 20
             common.write_file(filename=self.info_file, write_value=game_over_str)
+            self.log.info(game_over_str)
             #
             play_music.quit_music()
             self.log.info("游戏退出！")
@@ -602,6 +636,8 @@ if __name__ == '__main__':
     pieces_img = common.change_img(img=pieces_dict)
     # 加载vs图片
     vs_img = common.change_img('images/vs1.gif', width=80, height=80)
+    # 加载win图片
+    win_img = common.change_img('images/win1.gif', width=145, height=145)
     # 加载背景音乐
     play_music.is_not_busy()
     #
