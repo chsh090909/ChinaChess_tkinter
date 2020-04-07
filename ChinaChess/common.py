@@ -12,15 +12,20 @@ import platform
 import sys
 import time
 import os
+import threading
 from PIL import Image, ImageTk
 from ChinaChess.customException import *
 from ChinaChess.loggerPrint import LoggerPrint
+from ChinaChess.settings import Settings
 
 class Commmon():
     def __init__(self, setting):
         self.setting = setting
         self.__logger = LoggerPrint(self.setting)
         self.log = self.__logger.printLogToSystem(False)
+
+        self.times = 0
+        self.color1, self.color2 = 'red', 'black'
 
     # 获取当前系统的名称
     def get_system_name(self):
@@ -53,7 +58,6 @@ class Commmon():
             return img_dict
         else:
              raise ImgNotFound('传入图片格式不正确或者图片不存在！')
-
 
     # 读取文件
     def read_file(self, filename, flag=None):
@@ -108,6 +112,18 @@ class Commmon():
             how_long += secs
         return how_long
 
+    # 改变字体颜色
+    def change_font_color(self):
+        if self.times <= 5:
+            self.color1, self.color2 = self.color2, self.color1
+            self.times += 1
+            t = threading.Timer(1, self.change_font_color)
+            t.start()
+        print(f"第 {self.times} 次：color1, color2 = {self.color1}, {self.color2}")
+
+
+
 if __name__ == '__main__':
-    common = Commmon()
-    common.change_img(img=None)
+    setting = Settings()
+    common = Commmon(setting)
+    common.change_font_color()

@@ -163,7 +163,43 @@ class Chess():
 
     # 为悔棋菜单，设置功能
     def break_piece(self):
-        self.reset_game_start('')
+        if self.numCount == 0:
+            pass
+        else:
+            # 取info文件的走棋内容
+            info_list = common.read_file(filename=self.info_file, flag='info')
+            # 删除lastline最后一步的内容(倒数三行)
+            self.log.info(f"玩家: {self.nowPlayer} 点击悔棋===>开始")
+            self.log.info(f"悔棋需要丢掉的内容==>{info_list[len(info_list) - 3].strip()}")
+            self.log.info(f"悔棋需要丢掉的allpieces值==>{info_list[len(info_list) - 2].strip()}")
+            self.log.info(f"悔棋需要丢掉的box_open_dict值==>{info_list[len(info_list) - 1].strip()}")
+            info_list.pop()
+            info_list.pop()
+            info_list.pop()
+            # 取得需要悔棋的内容
+            break_value = info_list[len(info_list) - 3].strip()
+            break_all_pieces = info_list[len(info_list) - 2].strip()
+            break_box_open = info_list[len(info_list) - 1].strip()
+            break_all_pieces = json.loads(break_all_pieces)
+            break_box_open = json.loads(break_box_open)
+            self.log.info(f"悔棋开始的内容==>{break_value}")
+            self.log.info(f"悔棋开始的allpieces值==>{break_all_pieces}")
+            self.log.info(f"悔棋开始的box_open_dict值==>{break_box_open}")
+            # 还原上一步的内容
+            self.numCount -= 1
+            if '移动到' in break_value:
+                self.allCount -= 1
+
+            self.all_pieces = break_all_pieces
+            self.box_open_dict = break_box_open
+
+            print(f"self.numCount: {self.numCount}")
+            print(f"self.allCount: {self.allCount}")
+
+            self.log.info(f"玩家: {self.nowPlayer} 点击悔棋===>结束")
+
+
+
 
     # 初始化窗体内容
     def init_widgets(self):
@@ -294,9 +330,9 @@ class Chess():
         self.cv.itemconfig(self.player2_color, text=' ')
         self.cv.itemconfig(self.player1_state, text=f'状态：正在走棋。。。')
         self.cv.itemconfig(self.player2_state, text=f'状态：走棋完成！')
-        if write_won == f"恭喜玩家： {setting.player1_name} 胜利!":
+        if write_won == f"恭喜玩家：{setting.player1_name} 胜利!":
             self.cv.itemconfig(self.player1_won, text=f'胜利：{self.Player1WonCount} 局')
-        elif write_won == f"恭喜玩家： {setting.player2_name} 胜利!":
+        elif write_won == f"恭喜玩家：{setting.player2_name} 胜利!":
             self.cv.itemconfig(self.player2_won, text=f'胜利：{self.Player2WonCount} 局')
         elif write_won == "本局游戏为平局!":
             self.cv.itemconfig(self.player1_tie, text=f'打平：{self.tieCount} 局')
@@ -448,17 +484,17 @@ class Chess():
                             # 更新playerinfo
                             self.upd_player_info(box_piece['box_key'])
                             # 走棋成功，写入info文件
-                            self.write_str = f"时间:{common.get_now_time()}|步数:{self.numCount}|总步数:{self.allCount}|"
+                            self.write_str = f"正常走棋==>>时间:{common.get_now_time()}|步数:{self.numCount}|总步数:{self.allCount}|"
                             self.write_str += f"当前玩家:{self.nowPlayer}|走棋内容:"
-                            self.write_str += f"第一步:{self.all_pieces[self.first_selected_value]}==>"
-                            self.write_str += f"第二步:{self.all_pieces[self.second_selected_value]}"
+                            self.write_str += f"第一步:{box1_xy}和{box1_name}==>"
+                            self.write_str += f"第二步:{box2_xy}和{box2_name}"
                             common.write_file(filename=self.info_file, write_value=self.write_str)
                             common.write_file(filename=self.info_file, write_value=json.dumps(self.all_pieces))
+                            common.write_file(filename=self.info_file, write_value=json.dumps(self.box_open_dict))
                             # 恢复第一次选择的状态
                             self.reset_first_state()
                             self.log.info("两个棋子对比结束后，恢复第一次状态，更新玩家信息")
                             self.print_log()
-
             # 棋子状态为Flase
             elif piece_state is False:
                 # 如果第一次的选择有值则清空，认为当前用户选择打开其他的棋子
@@ -484,11 +520,12 @@ class Chess():
                 # 更新player_info的信息
                 self.upd_player_info(box_key)
                 # 走棋成功，写入info文件
-                self.write_str = f"时间:{common.get_now_time()}|步数:{self.numCount}|总步数:{self.allCount}|"
+                self.write_str = f"正常走棋==>>时间:{common.get_now_time()}|步数:{self.numCount}|总步数:{self.allCount}|"
                 self.write_str += f"当前玩家:{self.nowPlayer}|走棋内容:"
                 self.write_str += f"打开棋子:{self.all_pieces[box_xy]}"
                 common.write_file(filename=self.info_file, write_value=self.write_str)
                 common.write_file(filename=self.info_file, write_value=json.dumps(self.all_pieces))
+                common.write_file(filename=self.info_file, write_value=json.dumps(self.box_open_dict))
                 #
                 self.log.info("打开棋子，更新玩家信息")
                 self.print_log()
@@ -531,18 +568,19 @@ class Chess():
                         # 棋子走到方格代表走动了一步，则allCount则要加1
                         self.allCount += 1
                         # 走棋成功，写入info文件
-                        self.write_str = f"时间:{common.get_now_time()}|步数:{self.numCount}|总步数:{self.allCount}|"
+                        self.write_str = f"正常走棋==>>时间:{common.get_now_time()}|步数:{self.numCount}|总步数:{self.allCount}|"
                         self.write_str += f"当前玩家:{self.nowPlayer}|走棋内容:"
-                        self.write_str += f"第一步:{self.all_pieces[self.first_selected_value]}==>"
-                        self.write_str += f"移动到:{self.all_pieces[self.second_selected_value]}"
+                        self.write_str += f"第一步:{box1_xy}和{box1_name}==>"
+                        self.write_str += f"移动到:{box2_xy}和{box2_name}"
                         common.write_file(filename=self.info_file, write_value=self.write_str)
                         common.write_file(filename=self.info_file, write_value=json.dumps(self.all_pieces))
+                        common.write_file(filename=self.info_file, write_value=json.dumps(self.box_open_dict))
                         # 恢复第一次选择的状态
                         self.reset_first_state()
                         #
                         self.log.info("box2为空，两个棋子对比结束后，恢复第一次状态，更新玩家信息")
                         self.print_log()
-            # 用numCount和allCount比较，两者相等才能进入判断是否游戏结束
+            # 用numCount和allCount比较，num比all大的时候才能进入判断是否游戏结束
             if self.numCount >= self.allCount:
                 is_over = game.is_game_over(self.all_pieces, self.nowPlayer, self.player1Color, self.player2Color)
                 # is_over的结果为'red', 'black', 'none', 'tie'
@@ -553,22 +591,22 @@ class Chess():
                     write_won = ''
                     if is_over == 'red' or is_over == 'black':
                         if self.player1Color == is_over:
-                            self.log.info(f"本局游戏结束！！玩家1： {setting.player1_name} {is_over}  胜利!")
+                            self.log.info(f"本局游戏结束！！玩家1：{setting.player1_name} {is_over}  胜利!")
                             self.totalCount += 1
                             self.Player1WonCount += 1
-                            write_won += f"恭喜玩家： {setting.player1_name} 胜利!"
+                            write_won += f"恭喜玩家：{setting.player1_name} 胜利!"
                         else:
-                            self.log.info(f"本局游戏结束！！玩家2： {setting.player2_name} {is_over} 胜利!")
+                            self.log.info(f"本局游戏结束！！玩家2：{setting.player2_name} {is_over} 胜利!")
                             self.totalCount += 1
                             self.Player2WonCount += 1
-                            write_won += f"恭喜玩家： {setting.player2_name} 胜利!"
+                            write_won += f"恭喜玩家：{setting.player2_name} 胜利!"
                     elif is_over == 'tie':
                         self.log.info(f"本局游戏结束！！本局游戏为平局!")
                         self.totalCount += 1
                         self.tieCount += 1
                         write_won += f"本局游戏为平局!"
                     # 走棋成功，写入info文件
-                    self.write_str = f"时间:{common.get_now_time()}|步数:{self.numCount}|总步数:{self.allCount}|"
+                    self.write_str = f"正常走棋==>>时间:{common.get_now_time()}|步数:{self.numCount}|总步数:{self.allCount}|"
                     self.write_str += f"当前第{self.totalCount}局游戏结束！{write_won}"
                     end_str = "*" * 20 + f"第{self.totalCount + 1}局游戏开始！！" + "*" * 20
                     common.write_file(filename=self.info_file, write_value=self.write_str)
