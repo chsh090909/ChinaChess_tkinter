@@ -63,7 +63,8 @@ class Chess():
         self.numCount = 0
         # 完成整个游戏的最小步数为48步(打开所有棋子需要32步，彼此都吃掉对方需要16步)
         self.allCount = 48
-        # 游戏开始需要写入info文件的信息
+        # 定义是否悔棋的标识
+        self.isBreak = False
         # 游戏开始，写入游戏开始信息
         self.game_begin_time = datetime.now()
         self.begin_str = "*" * 20 + setting.begin_str + "*" * 20
@@ -163,43 +164,93 @@ class Chess():
 
     # 为悔棋菜单，设置功能
     def break_piece(self):
-        if self.numCount == 0:
+        if self.numCount <= 1:
             pass
         else:
             # 取info文件的走棋内容
             info_list = common.read_file(filename=self.info_file, flag='info')
             # 删除lastline最后一步的内容(倒数三行)
             self.log.info(f"玩家: {self.nowPlayer} 点击悔棋===>开始")
-            self.log.info(f"悔棋需要丢掉的内容==>{info_list[len(info_list) - 3].strip()}")
+            break_value = info_list[len(info_list) - 3].strip()
+            self.log.info(f"悔棋需要还原的内容==>{break_value}")
             self.log.info(f"悔棋需要丢掉的allpieces值==>{info_list[len(info_list) - 2].strip()}")
             self.log.info(f"悔棋需要丢掉的box_open_dict值==>{info_list[len(info_list) - 1].strip()}")
             info_list.pop()
             info_list.pop()
             info_list.pop()
-            # 取得需要悔棋的内容
-            break_value = info_list[len(info_list) - 3].strip()
-            break_all_pieces = info_list[len(info_list) - 2].strip()
-            break_box_open = info_list[len(info_list) - 1].strip()
-            break_all_pieces = json.loads(break_all_pieces)
-            break_box_open = json.loads(break_box_open)
-            self.log.info(f"悔棋开始的内容==>{break_value}")
-            self.log.info(f"悔棋开始的allpieces值==>{break_all_pieces}")
-            self.log.info(f"悔棋开始的box_open_dict值==>{break_box_open}")
             # 还原上一步的内容
+            break_value = break_value.split('|')[-1]
             self.numCount -= 1
-            if '移动到' in break_value:
+            if '打开棋子' in break_value:
+                break_value = break_value.split(':')[-1]
+                box_xy = break_value.split(',')[0].lstrip('[')
+                box_x = int(box_xy.split('_')[1])
+                box_y = int(box_xy.split('_')[-1])
+                # 删除现在打开的棋子图片
+                self.cv.delete(self.box_open_dict[f"box_{box_x}_{box_y}"])
+                # 重新创建棋子背面图片在box上
+                piece_local_x = setting.piece_first_x + box_x * setting.piece_size
+                piece_local_y = setting.piece_first_y + box_y * setting.piece_size
+                back_img = self.cv.create_image(piece_local_x, piece_local_y, image=pieces_back_img, anchor=NW)
+                self.box_back_dict[f"box_{box_x}_{box_y}"] = back_img
+            elif '吃棋' in break_value:
+                break_value = break_value.split(':')
+                box1 = break_value[-2]
+                box2 = break_value[-1]
+                box1_xy = box1.split(',')[0].lstrip('[')
+                box2_xy = box2.split(',')[0].lstrip('[')
+                box1_value = box1.split(',')[1].rstrip(']')
+                box2_value = box2.split(',')[1].rstrip(']')
+                box1_value = box1_value[:-1] if box1_value[-1:].isnumeric() else box1_value
+                box2_value = box2_value[:-1] if box2_value[-1:].isnumeric() else box2_value
+                box1_name = box1_value.split('_')[-1]
+                box2_name = box2_value.split('_')[-1]
+                box1_local_x = int(box1_xy.split('_')[1]) * setting.piece_size + setting.piece_first_x
+                box1_local_y = int(box1_xy.split('_')[-1]) * setting.piece_size + setting.piece_first_y
+                box2_local_x = int(box2_xy.split('_')[1]) * setting.piece_size + setting.piece_first_x
+                box2_local_y = int(box2_xy.split('_')[-1]) * setting.piece_size + setting.piece_first_y
+                # 判断两个棋子是否相同
+                if box1_name != box2_name:
+                    # 两个不同，box2先delete
+                    self.cv.delete(self.box_open_dict[box2_xy])
+                # box1和box2都create回来
+                box1_img = self.cv.create_image(box1_local_x, box1_local_y, image=pieces_img[box1_value], anchor=NW)
+                box2_img = self.cv.create_image(box2_local_x, box2_local_y, image=pieces_img[box2_value], anchor=NW)
+                self.box_open_dict[box1_xy] = box1_img
+                self.box_open_dict[box2_xy] = box2_img
+                print(f"悔棋==》》吃棋==》》self.box_open_dict: {self.box_open_dict}")
+            elif '移动' in break_value:
+                break_value = break_value.split(':')
+                box1 = break_value[-2]
+                box2 = break_value[-1]
+                box1_xy = box1.split(',')[0].lstrip('[')
+                box2_xy = box2.split(',')[0].lstrip('[')
+                box1_local_x = int(box1_xy.split('_')[1]) * setting.piece_size + setting.piece_first_x
+                box1_local_y = int(box1_xy.split('_')[-1]) * setting.piece_size + setting.piece_first_y
+                # 将box2上的图片重新移回到box1的位置上
+                self.cv.coords(self.box_open_dict[box2_xy], box1_local_x, box1_local_y)
+                # 只有移动的时候allcount才会增加1，所以这里悔棋的时候allcount要减1
                 self.allCount -= 1
-
+            # 还原all_pieces，box_open_dict不能用原来的了，里面的值在createimg的时候已经发生改变了
+            break_all_pieces = info_list[len(info_list) - 2].strip()
+            break_all_pieces = json.loads(break_all_pieces)
             self.all_pieces = break_all_pieces
-            self.box_open_dict = break_box_open
-
-            print(f"self.numCount: {self.numCount}")
-            print(f"self.allCount: {self.allCount}")
-
+            # 还原玩家和玩家状态信息
+            if self.nowPlayer == self.player1:
+                self.nowPlayer = self.player2
+                self.cv.itemconfig(self.player1_state, text=f'状态：走棋完毕！', fill=setting.font_color)
+                self.cv.itemconfig(self.player2_state, text=f'状态：正在走棋。。。', fill='#006400')
+            else:
+                self.nowPlayer = self.player1
+                self.cv.itemconfig(self.player1_state, text=f'状态：正在走棋。。。', fill='#006400')
+                self.cv.itemconfig(self.player2_state, text=f'状态：走棋完毕！', fill=setting.font_color)
+            # 将infolist重新写回info文件
+            common.write_file(self.info_file, write_value=info_list)
+            #
+            print(f"悔棋结束之前》》self.box_open_dict: {self.box_open_dict}")
+            self.log.info(f"self.numCount: {self.numCount}")
+            self.log.info(f"self.allCount: {self.allCount}")
             self.log.info(f"玩家: {self.nowPlayer} 点击悔棋===>结束")
-
-
-
 
     # 初始化窗体内容
     def init_widgets(self):
@@ -217,7 +268,7 @@ class Chess():
         # 加载鼠标悬停棋子的选中效果
         self.piece_selected = self.load_piece_selected()
         # cv绑定鼠标事件
-        self.cv.bind('<Motion>', self.move_handler)
+        # self.cv.bind('<Motion>', self.move_handler)
         self.cv.bind('<Button-1>', self.click_handler)
 
     # 加载棋盘图片
@@ -484,10 +535,14 @@ class Chess():
                             # 更新playerinfo
                             self.upd_player_info(box_piece['box_key'])
                             # 走棋成功，写入info文件
-                            self.write_str = f"正常走棋==>>时间:{common.get_now_time()}|步数:{self.numCount}|总步数:{self.allCount}|"
+                            if self.isBreak is True:
+                                self.write_str = "悔棋后走棋==>>"
+                                self.isBreak = False
+                            else:
+                                self.write_str = "正常走棋==>>"
+                            self.write_str += f"时间:{common.get_now_time()}|步数:{self.numCount}|总步数:{self.allCount}|"
                             self.write_str += f"当前玩家:{self.nowPlayer}|走棋内容:"
-                            self.write_str += f"第一步:{box1_xy}和{box1_name}==>"
-                            self.write_str += f"第二步:{box2_xy}和{box2_name}"
+                            self.write_str += f"吃棋:[{box1_xy},{box1_name}]:[{box2_xy},{box2_name}]"
                             common.write_file(filename=self.info_file, write_value=self.write_str)
                             common.write_file(filename=self.info_file, write_value=json.dumps(self.all_pieces))
                             common.write_file(filename=self.info_file, write_value=json.dumps(self.box_open_dict))
@@ -520,9 +575,15 @@ class Chess():
                 # 更新player_info的信息
                 self.upd_player_info(box_key)
                 # 走棋成功，写入info文件
+                if self.isBreak is True:
+                    self.write_str = "悔棋后走棋==>>"
+                    self.isBreak = False
+                else:
+                    self.write_str = "正常走棋==>>"
+                self.write_str += f"时间:{common.get_now_time()}|步数:{self.numCount}|总步数:{self.allCount}|"
                 self.write_str = f"正常走棋==>>时间:{common.get_now_time()}|步数:{self.numCount}|总步数:{self.allCount}|"
                 self.write_str += f"当前玩家:{self.nowPlayer}|走棋内容:"
-                self.write_str += f"打开棋子:{self.all_pieces[box_xy]}"
+                self.write_str += f"打开棋子:[{box_xy},{self.all_pieces[box_xy]['box_key']}]"
                 common.write_file(filename=self.info_file, write_value=self.write_str)
                 common.write_file(filename=self.info_file, write_value=json.dumps(self.all_pieces))
                 common.write_file(filename=self.info_file, write_value=json.dumps(self.box_open_dict))
@@ -568,10 +629,14 @@ class Chess():
                         # 棋子走到方格代表走动了一步，则allCount则要加1
                         self.allCount += 1
                         # 走棋成功，写入info文件
-                        self.write_str = f"正常走棋==>>时间:{common.get_now_time()}|步数:{self.numCount}|总步数:{self.allCount}|"
+                        if self.isBreak is True:
+                            self.write_str = "悔棋后走棋==>>"
+                            self.isBreak = False
+                        else:
+                            self.write_str = "正常走棋==>>"
+                        self.write_str += f"时间:{common.get_now_time()}|步数:{self.numCount}|总步数:{self.allCount}|"
                         self.write_str += f"当前玩家:{self.nowPlayer}|走棋内容:"
-                        self.write_str += f"第一步:{box1_xy}和{box1_name}==>"
-                        self.write_str += f"移动到:{box2_xy}和{box2_name}"
+                        self.write_str += f"移动:[{box1_xy},{box1_name}]:[{box2_xy},{box2_name}]"
                         common.write_file(filename=self.info_file, write_value=self.write_str)
                         common.write_file(filename=self.info_file, write_value=json.dumps(self.all_pieces))
                         common.write_file(filename=self.info_file, write_value=json.dumps(self.box_open_dict))

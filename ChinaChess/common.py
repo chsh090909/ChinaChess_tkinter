@@ -67,18 +67,21 @@ class Commmon():
                     return f.read()
                 elif flag == 'info':
                     return f.readlines()
-        except Exception as e:
-            self.log.exception('读取文件异常！')
+        except Exception:
+            self.log.exception(f'读取{filename}文件异常！')
 
     # 写入info文件
     def write_file(self, filename, write_value):
-        if isinstance(write_value, str):
-            with open(filename, 'ab+') as f:
-                writestr = (write_value + os.linesep).encode('utf-8')
-                f.write(writestr)
-        elif isinstance(write_value, list):
-            with open(filename, 'w+', encoding='utf-8') as f:
-                f.writelines(write_value)
+        try:
+            if isinstance(write_value, str):
+                with open(filename, 'ab+') as f:
+                    writestr = (write_value + os.linesep).encode('utf-8')
+                    f.write(writestr)
+            elif isinstance(write_value, list):
+                with open(filename, 'w+', encoding='utf-8') as f:
+                    f.writelines(write_value)
+        except Exception:
+            self.log.exception(f'写入{filename}文件异常！')
 
     # 获取当前系统时间，格式化后添加到文件名称中
     def format_now_time(self):

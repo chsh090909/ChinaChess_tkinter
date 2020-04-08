@@ -31,6 +31,10 @@ all_pieces = json.loads(all_pieces)
 print(all_pieces)
 print(type(all_pieces))
 
+
+list_a = ['a', 'b', 'c']
+print(list_a[-1])
+
 # def fn():
 #     true_count = 0
 #     none_count = 0
