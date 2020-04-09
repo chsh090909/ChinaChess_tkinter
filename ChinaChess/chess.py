@@ -48,7 +48,7 @@ class Chess():
         self.first_selected_value = None
         self.second_selected_img = None
         self.second_selected_value = None
-        self.box_open_dict = {}
+        self.box_img_dict = {}
         # 初始化玩家消息参数
         self.player1 = setting.player1_name
         self.player2 = setting.player2_name
@@ -94,7 +94,7 @@ class Chess():
         operation_menu = Menu(menubar, tearoff=0)
         help_menu = Menu(menubar, tearoff=0)
         # 添加顶级菜单
-        menubar.add_cascade(label='服务器', menu=server_menu)
+        menubar.add_cascade(label='游戏', menu=server_menu)
         menubar.add_cascade(label='操作', menu=operation_menu)
         menubar.add_cascade(label='帮助', menu=help_menu)
         # 为server_menu添加菜单项
@@ -170,11 +170,12 @@ class Chess():
             # 取info文件的走棋内容
             info_list = common.read_file(filename=self.info_file, flag='info')
             # 删除lastline最后一步的内容(倒数三行)
-            self.log.info(f"玩家: {self.nowPlayer} 点击悔棋===>开始")
+            break_player = self.nowPlayer
+            self.log.info(f"玩家: {break_player} 点击悔棋===>开始")
             break_value = info_list[len(info_list) - 3].strip()
             self.log.info(f"悔棋需要还原的内容==>{break_value}")
             self.log.info(f"悔棋需要丢掉的allpieces值==>{info_list[len(info_list) - 2].strip()}")
-            self.log.info(f"悔棋需要丢掉的box_open_dict值==>{info_list[len(info_list) - 1].strip()}")
+            self.log.info(f"悔棋需要丢掉的box_img_dict值==>{info_list[len(info_list) - 1].strip()}")
             info_list.pop()
             info_list.pop()
             info_list.pop()
@@ -187,12 +188,12 @@ class Chess():
                 box_x = int(box_xy.split('_')[1])
                 box_y = int(box_xy.split('_')[-1])
                 # 删除现在打开的棋子图片
-                self.cv.delete(self.box_open_dict[f"box_{box_x}_{box_y}"])
+                self.cv.delete(self.box_img_dict[f"box_{box_x}_{box_y}"])
                 # 重新创建棋子背面图片在box上
                 piece_local_x = setting.piece_first_x + box_x * setting.piece_size
                 piece_local_y = setting.piece_first_y + box_y * setting.piece_size
                 back_img = self.cv.create_image(piece_local_x, piece_local_y, image=pieces_back_img, anchor=NW)
-                self.box_back_dict[f"box_{box_x}_{box_y}"] = back_img
+                self.box_img_dict[f"box_{box_x}_{box_y}"] = back_img
             elif '吃棋' in break_value:
                 break_value = break_value.split(':')
                 box1 = break_value[-2]
@@ -212,13 +213,12 @@ class Chess():
                 # 判断两个棋子是否相同
                 if box1_name != box2_name:
                     # 两个不同，box2先delete
-                    self.cv.delete(self.box_open_dict[box2_xy])
+                    self.cv.delete(self.box_img_dict[box2_xy])
                 # box1和box2都create回来
                 box1_img = self.cv.create_image(box1_local_x, box1_local_y, image=pieces_img[box1_value], anchor=NW)
                 box2_img = self.cv.create_image(box2_local_x, box2_local_y, image=pieces_img[box2_value], anchor=NW)
-                self.box_open_dict[box1_xy] = box1_img
-                self.box_open_dict[box2_xy] = box2_img
-                print(f"悔棋==》》吃棋==》》self.box_open_dict: {self.box_open_dict}")
+                self.box_img_dict[box1_xy] = box1_img
+                self.box_img_dict[box2_xy] = box2_img
             elif '移动' in break_value:
                 break_value = break_value.split(':')
                 box1 = break_value[-2]
@@ -228,10 +228,12 @@ class Chess():
                 box1_local_x = int(box1_xy.split('_')[1]) * setting.piece_size + setting.piece_first_x
                 box1_local_y = int(box1_xy.split('_')[-1]) * setting.piece_size + setting.piece_first_y
                 # 将box2上的图片重新移回到box1的位置上
-                self.cv.coords(self.box_open_dict[box2_xy], box1_local_x, box1_local_y)
+                self.cv.coords(self.box_img_dict[box2_xy], box1_local_x, box1_local_y)
+                self.box_img_dict[box1_xy] = self.box_img_dict[box2_xy]
+                self.box_img_dict[box2_xy] = None
                 # 只有移动的时候allcount才会增加1，所以这里悔棋的时候allcount要减1
                 self.allCount -= 1
-            # 还原all_pieces，box_open_dict不能用原来的了，里面的值在createimg的时候已经发生改变了
+            # 还原all_pieces，box_img_dict不能用原来的了，里面的值在createimg的时候已经发生改变了
             break_all_pieces = info_list[len(info_list) - 2].strip()
             break_all_pieces = json.loads(break_all_pieces)
             self.all_pieces = break_all_pieces
@@ -244,13 +246,16 @@ class Chess():
                 self.nowPlayer = self.player1
                 self.cv.itemconfig(self.player1_state, text=f'状态：正在走棋。。。', fill='#006400')
                 self.cv.itemconfig(self.player2_state, text=f'状态：走棋完毕！', fill=setting.font_color)
+            # 悔棋标识置为True
+            self.isBreak = True
+            # 播放悔棋的音效
+            play_music.load_play_sound(setting.hq)
             # 将infolist重新写回info文件
             common.write_file(self.info_file, write_value=info_list)
             #
-            print(f"悔棋结束之前》》self.box_open_dict: {self.box_open_dict}")
             self.log.info(f"self.numCount: {self.numCount}")
             self.log.info(f"self.allCount: {self.allCount}")
-            self.log.info(f"玩家: {self.nowPlayer} 点击悔棋===>结束")
+            self.log.info(f"玩家: {break_player} 点击悔棋===>结束")
 
     # 初始化窗体内容
     def init_widgets(self):
@@ -262,13 +267,16 @@ class Chess():
         # 加载棋盘图片
         self.load_chess_board()
         # 加载棋子背面图片
-        self.box_back_dict = self.load_pieces_back()
+        self.load_pieces_back()
         # 加载玩家信息内容
         self.load_player_info()
         # 加载鼠标悬停棋子的选中效果
         self.piece_selected = self.load_piece_selected()
         # cv绑定鼠标事件
-        # self.cv.bind('<Motion>', self.move_handler)
+        # self.cv.bind('<Double-Button-1>', self.b1_double_handler)
+        self.cv.bind('<B1-Motion>', self.b1_move_handler)
+        self.cv.bind('<ButtonRelease-1>', self.b1_release_handler)
+        self.cv.bind('<Motion>', self.move_handler)
         self.cv.bind('<Button-1>', self.click_handler)
 
     # 加载棋盘图片
@@ -277,14 +285,15 @@ class Chess():
 
     # 加载棋子背面，循环加载
     def load_pieces_back(self):
-        box_back_dict = {}
+        # box_back_dict = {}
         for i in range(8):
             for j in range(4):
                 piece_local_x = setting.piece_first_x + i * setting.piece_size
                 piece_local_y = setting.piece_first_y + j * setting.piece_size
                 back_img = self.cv.create_image(piece_local_x, piece_local_y, image=pieces_back_img, anchor=NW)
-                box_back_dict[f"box_{i}_{j}"] = back_img
-        return box_back_dict
+                # box_back_dict[f"box_{i}_{j}"] = back_img
+                self.box_img_dict[f"box_{i}_{j}"] = back_img
+        # return box_back_dict
 
     # 加载选中棋子的图片
     def load_piece_selected(self):
@@ -366,10 +375,12 @@ class Chess():
         # 清空棋盘
         for i in range(8):
             for j in range(4):
-                if self.box_open_dict[f"box_{i}_{j}"] is not None:
-                    self.cv.delete(self.box_open_dict[f"box_{i}_{j}"])
+                if self.box_img_dict[f"box_{i}_{j}"] is not None:
+                    self.cv.delete(self.box_img_dict[f"box_{i}_{j}"])
         # 重新加载棋子背面图片
-        self.box_back_dict = self.load_pieces_back()
+        # self.box_back_dict = self.load_pieces_back()
+        self.box_img_dict = {}
+        self.load_pieces_back()
         # 加载最开始的玩家信息
         self.cv.itemconfig(self.player1_name, fill=None)
         self.cv.delete(self.player1_img)
@@ -394,7 +405,6 @@ class Chess():
         #
         self.reset_first_state()
         # 初始化玩家消息参数
-        self.box_open_dict = {}
         self.nowPlayer = self.player1
         self.player1Color = None
         self.player2Color = None
@@ -416,8 +426,52 @@ class Chess():
         self.log.info(f"self.player2Color: {self.player2Color}")
         self.log.info(f"self.numCount: {self.numCount}")
         self.log.info(f"self.allCount: {self.allCount}")
-        self.log.info(f"self.box_open_dict: {self.box_open_dict}")
+        self.log.info(f"self.box_img_dict: {self.box_img_dict}")
         self.log.info("=" * 50)
+
+    # 鼠标左键双击事件：
+    def b1_double_handler(self, event):
+        pass
+
+    # 鼠标左键滑动事件：
+    def b1_move_handler(self, event):
+        print(f"鼠标滑动的坐标：({event.x}, {event.y})")
+        if self.first_selected_value is not None and self.second_selected_value is None:
+            box_xy = self.first_selected_value
+            # allpieces必须为True的状态，而且还必须是自己方阵的棋子才允许拖动
+            if self.all_pieces[box_xy]['state'] is True:
+                # 确定鼠标的有效矩形位置
+                min_area_x = setting.piece_first_x
+                min_area_y = setting.piece_first_y
+                max_area_x = min_area_x + 8 * setting.piece_size
+                max_area_y = min_area_y + 4 * setting.piece_size
+                # 确认鼠标是在棋盘上有效的矩形范围之内
+                if (min_area_x < event.x < max_area_x) and (min_area_y < event.y < max_area_y):
+                    mouse_x_not = [i * 100 + min_area_x for i in range(1, 9)]
+                    mouse_y_not = [i * 100 + min_area_y for i in range(1, 5)]
+                    # 鼠标不能在棋盘线上
+                    if (event.x not in mouse_x_not) and (event.y not in mouse_y_not):
+                        # 拖动棋子到鼠标位置
+                        self.cv.coords(self.box_img_dict[box_xy], event.x-setting.piece_size/2, event.y-setting.piece_size/2)
+
+    # 鼠标左键释放事件：
+    def b1_release_handler(self, event):
+        box2_x, box2_y = game.get_box_xy(event.x, event.y)
+        print(f"鼠标释放的坐标：({event.x}, {event.y})")
+        box2_xy = f"box_{box2_x}_{box2_y}"
+        box1_xy = self.first_selected_value
+        # 释放时的位置棋子为False，则吃棋无效，将box1归还到原来的位置
+        if self.all_pieces[box2_xy]['state'] is False:
+            box1_x = int(box1_xy.split('_')[1])
+            box1_y = int(box1_xy.split('_')[-1])
+            box1_center_x = box1_x * setting.piece_size + setting.piece_first_x
+            box1_center_y = box1_y * setting.piece_size + setting.piece_first_y
+            self.cv.coords(self.box_img_dict[box1_xy], box1_center_x, box1_center_y)
+        elif self.all_pieces[box2_xy]['state'] is True:
+            box_color = self.all_pieces[box2_xy]['box_key'].split('_')[0]
+        else:
+            pass
+
 
     # 鼠标移动事件：获取鼠标坐标，画一个高亮的圆，表示当前鼠标在这个棋子上
     def move_handler(self, event):
@@ -510,20 +564,20 @@ class Chess():
                         else:
                             if vs_res is True:
                                 # 更新图片
-                                self.cv.delete(self.box_open_dict[box2_xy])
-                                self.box_open_dict[box2_xy] = self.box_open_dict[box1_xy]
-                                self.cv.coords(self.box_open_dict[box1_xy], box_local_x, box_local_y)
-                                self.box_open_dict[box1_xy] = None
+                                self.cv.delete(self.box_img_dict[box2_xy])
+                                self.box_img_dict[box2_xy] = self.box_img_dict[box1_xy]
+                                self.cv.coords(self.box_img_dict[box1_xy], box_local_x, box_local_y)
+                                self.box_img_dict[box1_xy] = None
                                 # 更新all_pieces
                                 self.all_pieces[box1_xy]['box_key'] = None
                                 self.all_pieces[box1_xy]['state'] = None
                                 self.all_pieces[box2_xy]['box_key'] = box1_name
                             elif vs_res is None:
                                 # 更新图片
-                                self.cv.delete(self.box_open_dict[box1_xy])
-                                self.cv.delete(self.box_open_dict[box2_xy])
-                                self.box_open_dict[box1_xy] = None
-                                self.box_open_dict[box2_xy] = None
+                                self.cv.delete(self.box_img_dict[box1_xy])
+                                self.cv.delete(self.box_img_dict[box2_xy])
+                                self.box_img_dict[box1_xy] = None
+                                self.box_img_dict[box2_xy] = None
                                 # 更新all_pieces
                                 self.all_pieces[box1_xy]['box_key'] = None
                                 self.all_pieces[box1_xy]['state'] = None
@@ -545,7 +599,7 @@ class Chess():
                             self.write_str += f"吃棋:[{box1_xy},{box1_name}]:[{box2_xy},{box2_name}]"
                             common.write_file(filename=self.info_file, write_value=self.write_str)
                             common.write_file(filename=self.info_file, write_value=json.dumps(self.all_pieces))
-                            common.write_file(filename=self.info_file, write_value=json.dumps(self.box_open_dict))
+                            common.write_file(filename=self.info_file, write_value=json.dumps(self.box_img_dict))
                             # 恢复第一次选择的状态
                             self.reset_first_state()
                             self.log.info("两个棋子对比结束后，恢复第一次状态，更新玩家信息")
@@ -557,7 +611,7 @@ class Chess():
                     # 恢复第一次选择的状态
                     self.reset_first_state()
                 # 删除原有的棋子背面图片
-                self.cv.delete(self.box_back_dict[box_xy])
+                self.cv.delete(self.box_img_dict[box_xy])
                 self.all_pieces[f'box_{box_x}_{box_y}']['state'] = True
                 # 取得all_pieces中对应的棋子标记
                 box_key = box_piece['box_key']
@@ -568,7 +622,7 @@ class Chess():
                 piece_img = pieces_img[box_key]
                 # 加载新打开的图片
                 piece_open = self.cv.create_image(box_local_x, box_local_y, image=piece_img, anchor=NW)
-                self.box_open_dict[box_xy] = piece_open
+                self.box_img_dict[box_xy] = piece_open
                 # 播放选择棋子的音效
                 if self.is_play is True:
                     play_music.load_play_sound(setting.xz)
@@ -586,7 +640,7 @@ class Chess():
                 self.write_str += f"打开棋子:[{box_xy},{self.all_pieces[box_xy]['box_key']}]"
                 common.write_file(filename=self.info_file, write_value=self.write_str)
                 common.write_file(filename=self.info_file, write_value=json.dumps(self.all_pieces))
-                common.write_file(filename=self.info_file, write_value=json.dumps(self.box_open_dict))
+                common.write_file(filename=self.info_file, write_value=json.dumps(self.box_img_dict))
                 #
                 self.log.info("打开棋子，更新玩家信息")
                 self.print_log()
@@ -613,9 +667,9 @@ class Chess():
                         self.reset_first_state()
                     else:
                         # 更新图片
-                        self.box_open_dict[box2_xy] = self.box_open_dict[box1_xy]
-                        self.cv.coords(self.box_open_dict[box1_xy], box_local_x, box_local_y)
-                        self.box_open_dict[box1_xy] = None
+                        self.box_img_dict[box2_xy] = self.box_img_dict[box1_xy]
+                        self.cv.coords(self.box_img_dict[box1_xy], box_local_x, box_local_y)
+                        self.box_img_dict[box1_xy] = None
                         # 更新all_pieces
                         self.all_pieces[box1_xy]['box_key'] = None
                         self.all_pieces[box1_xy]['state'] = None
@@ -639,7 +693,7 @@ class Chess():
                         self.write_str += f"移动:[{box1_xy},{box1_name}]:[{box2_xy},{box2_name}]"
                         common.write_file(filename=self.info_file, write_value=self.write_str)
                         common.write_file(filename=self.info_file, write_value=json.dumps(self.all_pieces))
-                        common.write_file(filename=self.info_file, write_value=json.dumps(self.box_open_dict))
+                        common.write_file(filename=self.info_file, write_value=json.dumps(self.box_img_dict))
                         # 恢复第一次选择的状态
                         self.reset_first_state()
                         #
