@@ -94,8 +94,8 @@ class GameFunction():
         box2_y = int(box2_xy.split('_')[2])
         box1_color = box1_name.split('_')[0]
         box1_value = box1_name.split('_')[1]
-        box1_value_1 = box1_value[:-1] if box1_value[-1:].isnumeric() else box1_value
-        box1_value_index = value_list.index(box1_value_1)
+        box1_value = box1_value[:-1] if box1_value[-1:].isnumeric() else box1_value
+        box1_value_index = value_list.index(box1_value)
         # 如果box1的位置比box2的位置大，则交换他们的值
         if box1_y > box2_y:
             box1_y, box2_y = box2_y, box1_y
@@ -105,13 +105,13 @@ class GameFunction():
         if box2_name is not None:
             box2_color = box2_name.split('_')[0]
             box2_value = box2_name.split('_')[1]
-            box2_value_1 = box2_value[:-1] if box2_value[-1:].isnumeric() else box2_value
-            box2_value_index = value_list.index(box2_value_1)
+            box2_value = box2_value[:-1] if box2_value[-1:].isnumeric() else box2_value
+            box2_value_index = value_list.index(box2_value)
         else:
             return self.__other_vs_piece(box1_x, box1_y, box2_x, box2_y, piece_equal=False)
         # 如果两个棋子相同，返回both
         if box1_value_index == box2_value_index:
-            if box1_value_1 == 'pao':
+            if box1_value == 'pao':
                 # '炮'相同时的吃法：
                 # 中间有且只有一个棋子，中间棋子不论打没打开都可以，没有距离限制，最后两个棋子同时失去
                 return self.__pao_vs_piece(box1_x, box1_y, box2_x, box2_y, all_pieces, piece_equal=True)
@@ -121,7 +121,7 @@ class GameFunction():
                 return self.__other_vs_piece(box1_x, box1_y, box2_x, box2_y, piece_equal=True)
         # 如果两个棋子不相同
         else:
-            if box1_value_1 == 'pao':
+            if box1_value == 'pao':
                 # '炮'的吃法：
                 # 1、中间必须有且只有一个棋子，才能吃到对方棋子，没有距离限制；
                 # 2、炮没有大小吃法限制，上到将，下到卒都可以吃；
@@ -135,14 +135,14 @@ class GameFunction():
                 # 4、棋子只能相邻的吃，而且一次只能走一步，吃一个棋子，炮除外
                 if box1_value_index < box2_value_index:
                     # 大吃小，除非jiang和zu或pao同时出现
-                    if box1_value_1 == 'jiang' and (box2_value_1 in ['zu', 'pao']):
+                    if box1_value == 'jiang' and (box2_value in ['zu', 'pao']):
                         self.logger.info("false原因：jiang在和zu或者pao比较")
                         return False
                     else:
                         return self.__other_vs_piece(box1_x, box1_y, box2_x, box2_y, piece_equal=False)
                 else:
                     # 最后一种情况：zu只能吃jiang
-                    if box1_value_1 == 'zu' and box2_value_1 == 'jiang':
+                    if box1_value == 'zu' and box2_value == 'jiang':
                         return self.__other_vs_piece(box1_x, box1_y, box2_x, box2_y, piece_equal=False)
                     else:
                         self.logger.info("false原因：box1比box2还小")
