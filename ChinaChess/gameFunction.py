@@ -52,7 +52,7 @@ class GameFunction():
                 pieces.remove(random_key)
         return all_pieces
 
-    # 获取鼠标位置所对应的方格坐标
+    # 获取鼠标位置所对应的方格id
     def get_box_xy(self, event_x, event_y):
         # 确定鼠标的有效矩形位置
         min_area_x = self.setting.piece_first_x
@@ -69,6 +69,12 @@ class GameFunction():
                 box_x = int((event_x - min_area_x) / 100)
                 box_y = int((event_y - min_area_y) / 100)
                 return (box_x, box_y)
+
+    # 获取棋子所在方格左上角的坐标
+    def get_box_local_xy(self, box_x, box_y):
+        box_local_x = box_x * self.setting.piece_size + self.setting.piece_first_x
+        box_local_y = box_y * self.setting.piece_size + self.setting.piece_first_y
+
 
     # 加载棋子对应的图片
     def get_piece_image(self):

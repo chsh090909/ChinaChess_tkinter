@@ -69,6 +69,6 @@ class Settings(object):
         self.file_write_level = logging.INFO
         # 设置文件的游戏开头语
         self.begin_str = "本轮游戏开始！！！当前第1局！"
-        # 设置文件的游戏结束语(总结游戏内容)
+        # 设置文件的游戏结束语
         self.end_str = ""
 

@@ -69,12 +69,12 @@ class Chess():
         self.game_begin_time = datetime.now()
         self.begin_str = "*" * 20 + setting.begin_str + "*" * 20
         self.write_str = ''
-        #
+        # 定义需要写入的文件为info文件，info文件拼接时间作为文件名
         self.info_file = setting.info_file_name
         filename_list = self.info_file.split('.')
         ntime = common.format_now_time()
         self.info_file = f"{filename_list[0]}{ntime}.{filename_list[1]}"
-        #
+        # 写入info文件
         common.write_file(filename=self.info_file, write_value=self.begin_str)
         common.write_file(filename=self.info_file, write_value=json.dumps(self.all_pieces))
         # 设置走棋音效是否播放开关
@@ -303,7 +303,6 @@ class Chess():
     # 加载玩家信息部分的内容
     def load_player_info(self, layout='default'):
         self.cv.create_rectangle(0, 495, 1030, 500, fill='red', outline='red')
-        # self.cv.create_rectangle(513, 495, 517, 680, fill='red', outline='red')
         self.cv.create_image(515, 590, image=vs_img)
         if layout == 'default':
             # 定义字体
@@ -516,7 +515,11 @@ class Chess():
                     if (event.x not in mouse_x_not) and (event.y not in mouse_y_not):
                         # 拖动棋子到鼠标位置
                         self.cv.coords(self.box_img_dict[box_xy], event.x-setting.piece_size/2, event.y-setting.piece_size/2)
-                        # self.cv.move(self.box_img_dict[box_xy], event.x/2, event.y/2)
+                        #
+                        # box_center_x = int(box_xy.split('_')[1]) * setting.piece_size + setting.piece_first_x
+                        # box_center_y = int(box_xy.split('_')[-1]) * setting.piece_size + setting.piece_first_y
+                        # self.cv.move(self.box_img_dict[box_xy], (event.x - box_center_x) * 0.05, (event.y - box_center_y) * 0.05)
+
 
     # 鼠标左键释放事件：
     def b1_release_handler(self, event):
