@@ -24,6 +24,7 @@ class Ai_chess():
         self.ai_2 = 20
         self.ai_1 = 10
         self.ai_0 = 0
-        #
+        # 设置搜索深度，默认为1
+        self.ai_deep = 1
 
 

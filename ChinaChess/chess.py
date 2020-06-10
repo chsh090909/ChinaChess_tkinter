@@ -428,7 +428,7 @@ class Chess():
         self.log.info(f"self.box_img_dict: {self.box_img_dict}")
         self.log.info("=" * 50)
 
-    # 处理棋子对比结果
+    # 处理棋子对比结果，更改棋盘上的棋子格局
     def vs_result(self, vs_res, box1_xy, box2_xy, box1_name, box2_name):
         if vs_res is False:
             # 恢复第一次选择的状态
@@ -496,7 +496,7 @@ class Chess():
     def b1_double_handler(self, event):
         pass
 
-    # 鼠标左键滑动事件：
+    # 鼠标左键拖动事件：
     def b1_move_handler(self, event):
         if self.first_selected_value is not None and self.second_selected_value is None:
             box_xy = self.first_selected_value
@@ -515,11 +515,6 @@ class Chess():
                     if (event.x not in mouse_x_not) and (event.y not in mouse_y_not):
                         # 拖动棋子到鼠标位置
                         self.cv.coords(self.box_img_dict[box_xy], event.x-setting.piece_size/2, event.y-setting.piece_size/2)
-                        #
-                        # box_center_x = int(box_xy.split('_')[1]) * setting.piece_size + setting.piece_first_x
-                        # box_center_y = int(box_xy.split('_')[-1]) * setting.piece_size + setting.piece_first_y
-                        # self.cv.move(self.box_img_dict[box_xy], (event.x - box_center_x) * 0.05, (event.y - box_center_y) * 0.05)
-
 
     # 鼠标左键释放事件：
     def b1_release_handler(self, event):
@@ -534,19 +529,31 @@ class Chess():
             box1_center_x = box1_x * setting.piece_size + setting.piece_first_x
             box1_center_y = box1_y * setting.piece_size + setting.piece_first_y
             # 释放时的位置棋子为False，则吃棋无效，将box1归还到原来的位置
-            if self.all_pieces[box2_xy]['state'] is False or box1_xy == box2_xy:
+            if self.all_pieces[box2_xy]['state'] is False:
                 self.cv.coords(self.box_img_dict[box1_xy], box1_center_x, box1_center_y)
             else:
                 box1_color = self.all_pieces[box1_xy]['box_key'].split('_')[0]
                 box2_color = None
                 if self.all_pieces[box2_xy]['state'] is not None:
                     box2_color = self.all_pieces[box2_xy]['box_key'].split('_')[0]
-                # box1color和box2相同也不进行处理
+                # box1color和box2不同，两个棋子比较大小
                 if box1_color != box2_color:
-                    vs_res = game.piece_VS_piece(box1_xy, box2_xy, box1_name, box2_name, self.all_pieces)
+                    self.log.info("=====两个棋子开始比较=====")
+                    self.log.info(f"box1_xy : box1_xy ==> {box1_xy} : {box2_xy}")
+                    self.log.info(f"box1 : box2 ==> {box1_name} : {box2_name}")
+                    vs_res = game.piece_VS_piece(box1_xy, box2_xy, self.all_pieces)
+                    self.log.info(f"比较之后的结果: {vs_res}")
+                    if vs_res is False:
+                        # 播放走棋错误的音效
+                        if self.is_play is True:
+                            play_music.load_play_sound(setting.cw)
+                    self.log.info("=====两个棋子比较结束=====")
                     result = self.vs_result(vs_res, box1_xy, box2_xy, box1_name, box2_name)
                     if result is False:
                         self.cv.coords(self.box_img_dict[box1_xy], box1_center_x, box1_center_y)
+                # box1color和box2相同，则吃棋无效，将box1归还到原来的位置
+                else:
+                    self.cv.coords(self.box_img_dict[box1_xy], box1_center_x, box1_center_y)
 
     # 鼠标移动事件：获取鼠标坐标，画一个高亮的圆，表示当前鼠标在这个棋子上
     def move_handler(self, event):
@@ -558,7 +565,7 @@ class Chess():
                 # 将create_image之后选中的图片，叠加到鼠标对应的棋子上
                 self.cv.coords(self.piece_selected, box_center_x, box_center_y)
 
-    # 鼠标单击事件：
+    # 鼠标左键按下事件：
     def click_handler(self, event):
         if game.get_box_xy(event.x, event.y):
             box_x, box_y = game.get_box_xy(event.x, event.y)
@@ -583,6 +590,12 @@ class Chess():
                         self.is_first_selected = False
                         # 记录下第一次选择的box坐标
                         self.first_selected_value = box_xy
+                        # 重新创建这个图片，存放在box_img_dict中
+                        box_key = box_piece['box_key']
+                        box_key = box_key[:-1] if box_key[-1:].isnumeric() else box_piece['box_key']
+                        piece_img = pieces_img[box_key]
+                        self.cv.delete(self.box_img_dict[box_xy])
+                        self.box_img_dict[box_xy] = self.cv.create_image(box_local_x, box_local_y, image=piece_img, anchor=NW)
                         # 播放选择棋子的音效
                         if self.is_play is True:
                             play_music.load_play_sound(setting.xz)
@@ -626,11 +639,15 @@ class Chess():
                         box1_name = self.all_pieces[box1_xy]['box_key']
                         box2_name = self.all_pieces[box2_xy]['box_key']
                         self.log.info("=====两个棋子开始比较=====")
-                        self.log.info(f"box1_xy : box1_xy ==> {box1_xy} : {box2_xy}")
+                        self.log.info(f"box1_xy : box2_xy ==> {box1_xy} : {box2_xy}")
                         self.log.info(f"box1 : box2 ==> {box1_name} : {box2_name}")
                         # vs_res的结果只有'true','false','both'
-                        vs_res = game.piece_VS_piece(box1_xy, box2_xy, box1_name, box2_name, self.all_pieces)
+                        vs_res = game.piece_VS_piece(box1_xy, box2_xy, self.all_pieces)
                         self.log.info(f"比较之后的结果: {vs_res}")
+                        if vs_res is False:
+                            # 播放走棋错误的音效
+                            if self.is_play is True:
+                                play_music.load_play_sound(setting.cw)
                         self.log.info("=====两个棋子比较结束=====")
                         self.print_log()
                         self.vs_result(vs_res, box1_xy, box2_xy, box1_name, box2_name)
@@ -666,7 +683,7 @@ class Chess():
                 else:
                     self.write_str = "正常走棋==>>"
                 self.write_str += f"时间:{common.get_now_time()}|步数:{self.numCount}|总步数:{self.allCount}|"
-                self.write_str = f"正常走棋==>>时间:{common.get_now_time()}|步数:{self.numCount}|总步数:{self.allCount}|"
+                # self.write_str = f"正常走棋==>>时间:{common.get_now_time()}|步数:{self.numCount}|总步数:{self.allCount}|"
                 self.write_str += f"当前玩家:{self.nowPlayer}|走棋内容:"
                 self.write_str += f"打开棋子:[{box_xy},{self.all_pieces[box_xy]['box_key']}]"
                 common.write_file(filename=self.info_file, write_value=self.write_str)
@@ -689,8 +706,12 @@ class Chess():
                     self.log.info(f"box1_xy : box1_xy ==> {box1_xy} : {box2_xy}")
                     self.log.info(f"box1 : box2 ==> {box1_name} : {box2_name}")
                     # vs_res的结果只有true,false
-                    vs_res = game.piece_VS_piece(box1_xy, box2_xy, box1_name, box2_name, self.all_pieces)
+                    vs_res = game.piece_VS_piece(box1_xy, box2_xy, self.all_pieces)
                     self.log.info(f"比较之后的结果: {vs_res}")
+                    if vs_res is False:
+                        # 播放走棋错误的音效
+                        if self.is_play is True:
+                            play_music.load_play_sound(setting.cw)
                     self.log.info("=====两个棋子比较结束=====")
                     self.print_log()
                     self.vs_result(vs_res, box1_xy, box2_xy, box1_name, box2_name)

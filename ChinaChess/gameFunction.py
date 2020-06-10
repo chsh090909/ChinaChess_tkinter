@@ -85,19 +85,14 @@ class GameFunction():
         return pieces_dict
 
     # 两个棋子之间的比较
-    def piece_VS_piece(self, box1_xy, box2_xy, box1_name, box2_name, all_pieces):
-        """
-        :param box1_xy: box_2_3
-        :param box2_xy: box_3_3
-        :param box1_name: red_shi1
-        :param box2_name: None
-        :return:
-        """
+    def piece_VS_piece(self, box1_xy, box2_xy, all_pieces):
         value_list = self.setting.pieces_list
         box1_x = int(box1_xy.split('_')[1])
         box1_y = int(box1_xy.split('_')[2])
         box2_x = int(box2_xy.split('_')[1])
         box2_y = int(box2_xy.split('_')[2])
+        box1_name = all_pieces[box1_xy]['box_key']
+        box2_name = all_pieces[box2_xy]['box_key']
         box1_color = box1_name.split('_')[0]
         box1_value = box1_name.split('_')[1]
         box1_value = box1_value[:-1] if box1_value[-1:].isnumeric() else box1_value

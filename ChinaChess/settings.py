@@ -9,7 +9,7 @@ class Settings(object):
     """
     def __init__(self):
         # 设置版本号
-        self.version = ' V0.0.1'
+        self.version = ' V0.0.12'
         self.version_file = 'help/versioninfo.me'
         # 窗体设置：宽、高、背景颜色、窗体标题以及窗体图标
         self.screen_width = 1030

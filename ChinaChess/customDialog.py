@@ -102,7 +102,7 @@ class MyDialog(Toplevel):
         font_show_continue = ('华文新魏', 14)
         text_show_over = f"第{totalCount}局游戏结束！"
         text_show_won = f"{write_won}"
-        text_show_continue = f"(点击确定按钮开始下一局,5s后自动关闭)"
+        text_show_continue = f"(点击确定按钮开始下一局,7s后自动关闭)"
         self.cv.create_text(self.width/2, 205, text=text_show_over, font=font_show_won, anchor=CENTER)
         self.show_won = self.cv.create_text(self.width/2, 240, text=text_show_won, font=font_show_won, anchor=CENTER, fill='red')
         self.shown_continue = self.cv.create_text(self.width/2, 275, text=text_show_continue, font=font_show_continue, anchor=CENTER)
@@ -126,7 +126,6 @@ class MyDialog(Toplevel):
             self.times += 1
             t = threading.Timer(1, self.change_font_color)
             t.start()
-            print(f"第 {self.times} 次：color1, color2 = {self.color1}, {self.color2}")
 
     def cancel_click(self, event=None):
         # 将焦点返回给父窗口
