@@ -32,7 +32,7 @@ class GameFunction():
                 for i in range(1, 6):
                     pieces.append(f"{piece_flag}_{piece}{str(i)}")
             else:
-                pieces.append(f"{piece_flag}_{piece}")
+                pieces.append(f"{piece_flag}_{piece}1")
         return pieces
 
     # 初始化棋子配置
@@ -86,6 +86,15 @@ class GameFunction():
 
     # 两个棋子之间的比较
     def piece_VS_piece(self, box1_xy, box2_xy, all_pieces):
+        '''
+        :param box1_xy:
+        :param box2_xy:
+        :param all_pieces:
+        :return: [True|False|None, '原因', True|False]
+                True|False|None：表示box1和box2的比较结果
+                '原因'：表示原因，便于提示失败的原因，也可指示成功的提示
+                True|False：表示对于该原因，对后续AI走棋获取该走棋步骤时，是否为需要添加的走棋步骤
+        '''
         value_list = self.setting.pieces_list
         box1_x = int(box1_xy.split('_')[1])
         box1_y = int(box1_xy.split('_')[2])
@@ -95,7 +104,8 @@ class GameFunction():
         box2_name = all_pieces[box2_xy]['box_key']
         box1_color = box1_name.split('_')[0]
         box1_value = box1_name.split('_')[1]
-        box1_value = box1_value[:-1] if box1_value[-1:].isnumeric() else box1_value
+        box1_value = box1_value[:-1]
+        # box1_value = box1_value[:-1] if box1_value[-1:].isnumeric() else box1_value
         box1_value_index = value_list.index(box1_value)
         # 如果box1的位置比box2的位置大，则交换他们的值
         if box1_y > box2_y:
@@ -105,8 +115,12 @@ class GameFunction():
         # box2如果为空，则认为第二次选择了棋盘空格，不为空则需要取box2的值与box1比较
         if box2_name is not None:
             box2_color = box2_name.split('_')[0]
+            if box2_color == box1_color:
+                # self.logger.info("false原因：两个棋子在同一个方阵")
+                return [False, 'color', False]
             box2_value = box2_name.split('_')[1]
-            box2_value = box2_value[:-1] if box2_value[-1:].isnumeric() else box2_value
+            box2_value = box2_value[:-1]
+            # box2_value = box2_value[:-1] if box2_value[-1:].isnumeric() else box2_value
             box2_value_index = value_list.index(box2_value)
         else:
             return self.__other_vs_piece(box1_x, box1_y, box2_x, box2_y, piece_equal=False)
@@ -136,18 +150,24 @@ class GameFunction():
                 # 4、棋子只能相邻的吃，而且一次只能走一步，吃一个棋子，炮除外
                 if box1_value_index < box2_value_index:
                     # 大吃小，除非jiang和zu或pao同时出现
-                    if box1_value == 'jiang' and (box2_value in ['zu', 'pao']):
-                        self.logger.info("false原因：jiang在和zu或者pao比较")
-                        return False
+                    if box1_value == 'jiang' and box2_value == 'zu':
+                        # self.logger.info("false原因：jiang在和zu比较")
+                        return [False, 'jiang_zu', True]
+                    elif box1_value == 'jiang' and box2_value == 'pao':
+                        # self.logger.info("false原因：jiang在和pao比较")
+                        return [False, 'jiang_pao', False]
                     else:
                         return self.__other_vs_piece(box1_x, box1_y, box2_x, box2_y, piece_equal=False)
-                else:
+                elif box1_value_index > box2_value_index:
                     # 最后一种情况：zu只能吃jiang
                     if box1_value == 'zu' and box2_value == 'jiang':
                         return self.__other_vs_piece(box1_x, box1_y, box2_x, box2_y, piece_equal=False)
+                    elif box1_value == 'zu' and box2_value == 'pao':
+                        # self.logger.info("false原因：zu在和pao比较")
+                        return [False, 'zu_pao', False]
                     else:
-                        self.logger.info("false原因：box1比box2还小")
-                        return False
+                        # self.logger.info("false原因：box1比box2还小")
+                        return [False, 'box1<box2', True]
 
     # pao的比较
     def __pao_vs_piece(self, box1_x, box1_y, box2_x, box2_y, all_pieces, piece_equal=True):
@@ -160,13 +180,13 @@ class GameFunction():
                     break
             if between_state_have == 1:
                 if piece_equal is True:
-                    self.logger.info("None：box1和box2相同")
-                    return None
+                    # self.logger.info("None：box1和box2相同，都是pao")
+                    return [None, 'box1=box2', True]
                 else:
-                    return True
+                    return [True, 'success', True]
             else:
-                self.logger.info("false原因：box1和box2之间，在y轴上没有棋子，或者有大于2个的棋子")
-                return False
+                # self.logger.info("false原因：box1和box2之间，在y轴上没有棋子，或者有大于2个的棋子")
+                return [False, 'pao_between', False]
         elif box1_y == box2_y and box2_x - box1_x > 1:
             between_state_have = 0
             for i in range(box1_x + 1, box2_x):
@@ -176,28 +196,28 @@ class GameFunction():
                     break
             if between_state_have == 1:
                 if piece_equal is True:
-                    self.logger.info("None：box1和box2相同")
-                    return None
+                    # self.logger.info("None：box1和box2相同，都是pao")
+                    return [None, 'box1=box2', True]
                 else:
-                    return True
+                    return [True, 'success', True]
             else:
-                self.logger.info("false原因：box1和box2之间，在x轴上没有棋子，或者有大于2个的棋子")
-                return False
+                # self.logger.info("false原因：box1和box2之间，在x轴上没有棋子，或者有大于2个的棋子")
+                return [False, 'pao_between', False]
         else:
-            self.logger.info("false原因：box1和box2不在同一条x轴或y轴上")
-            return False
+            # self.logger.info("false原因：box1和box2不在同一条x轴或y轴上")
+            return [False, 'box1_noline_box2', False]
 
     # 其他棋子的比较
     def __other_vs_piece(self, box1_x, box1_y, box2_x, box2_y, piece_equal=True):
         if (box1_x == box2_x and box2_y - box1_y == 1) or (box1_y == box2_y and box2_x - box1_x == 1):
             if piece_equal is True:
-                self.logger.info("None：box1和box2相同")
-                return None
+                # self.logger.info("None：box1和box2相同")
+                return [None, 'box1=box2', True]
             else:
-                return True
+                return [True, 'success', True]
         else:
-            self.logger.info("false原因：box1和box2不在同一条x轴或y轴上")
-            return False
+            # self.logger.info("false原因：box1和box2不在同一条x轴或y轴上")
+            return [False, 'box1_noline_box2', False]
 
     # 游戏结束判断
     def is_game_over(self, all_pieces, nowPlayer, player1Color, player2Color):
@@ -262,11 +282,13 @@ class GameFunction():
                         if box_color == 'red':
                             red_x = int(value.split('_')[1])
                             red_y = int(value.split('_')[2])
-                            red_value = box_value[:-1] if box_value[-1:].isnumeric() else box_value
+                            red_value = box_value[:-1]
+                            # red_value = box_value[:-1] if box_value[-1:].isnumeric() else box_value
                         else:
                             black_x = int(value.split('_')[1])
                             black_y = int(value.split('_')[2])
-                            black_value = box_value[:-1] if box_value[-1:].isnumeric() else box_value
+                            black_value = box_value[:-1]
+                            # black_value = box_value[:-1] if box_value[-1:].isnumeric() else box_value
                     red_value_index = value_list.index(red_value)
                     black_value_index = value_list.index(black_value)
                     #
@@ -307,10 +329,12 @@ class GameFunction():
             box_color = key.split('_')[0]
             box_value = key.split('_')[1]
             if box_color == one_color:
-                one_value = box_value[:-1] if box_value[-1:].isnumeric() else box_value
+                one_value = box_value[:-1]
+                # one_value = box_value[:-1] if box_value[-1:].isnumeric() else box_value
                 one_index = value_list.index(one_value)
             else:
-                more_value = box_value[:-1] if box_value[-1:].isnumeric() else box_value
+                more_value = box_value[:-1]
+                # more_value = box_value[:-1] if box_value[-1:].isnumeric() else box_value
                 index_list.append(value_list.index(more_value))
         # 红方只有一个pao，黑方也只有pao和zu，则为平局
         if one_index == 5 and [0, 1, 2, 3, 4] not in index_list and len(index_list) < 4:

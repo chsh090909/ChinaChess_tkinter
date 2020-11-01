@@ -42,6 +42,8 @@ class MyDialog(Toplevel):
             self.initial_focus = self.init_widget_about(frame)
         elif widget == 'over':
             self.initial_focus = self.init_widget_over(frame)
+        elif widget == 'start':
+            self.initial_focus = self.init_widget_start(frame)
         frame.pack()
         # 根据modal选项设置是否为模式对话框
         if modal: self.grab_set()
@@ -114,6 +116,16 @@ class MyDialog(Toplevel):
         self.close_btn = ttk.Button(self.cv, text='确 定')
         self.close_btn.place(x=140, y=410)
         self.close_btn.bind('<ButtonRelease-1>', self.cancel_click)
+
+    # 创建自定义对话框内容--游戏开始选择游戏模式
+    def init_widget_start(self, master):
+        # 创建画布，获得焦点
+        self.cv = Canvas(master, bg=self.setting.bg_color, width=self.width, height=self.height)
+        self.cv.pack(fill=BOTH, expand=YES)
+        self.cv.focus_set()
+        # 添加一个图片
+        self.cv.create_image(self.width / 2, 90, image=self.img, anchor=CENTER)
+        # 添加一行文字
 
     # 改变字体颜色
     def change_font_color(self):

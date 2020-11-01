@@ -38,6 +38,7 @@ class Settings(object):
         # 设置玩家文字、字体和字号
         self.player1_name = '玩家A'
         self.player2_name = '玩家B'
+        self.player2_thinktime = 2
         self.font_style = '经典繁毛楷'
         self.font_color = '#8B4513'
         self.font_player_size = 44
