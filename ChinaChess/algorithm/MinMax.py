@@ -1,10 +1,12 @@
 #!/usr/bin/python3
 # encoding: utf-8
 
+from random import randint
 from copy import deepcopy
 from ChinaChess.algorithm.Timer import clock
-from ChinaChess.algorithm.moves import Moves
+from ChinaChess.algorithm.moves import Moves, MoveNodes
 from ChinaChess.algorithm.scores import Scores
+from ChinaChess.algorithm.dataPercent import DataPercent
 
 
 class MinMax():
@@ -23,9 +25,29 @@ class MinMax():
         beta = 100000000000
         # allmoves为空，表明要么无棋子可走（输了），要么打开的棋子上没有合适的棋子可走
         if len(all_moves) == 0:
-            print('++++++++++++++++++++++开始+++++++++++++++++++++++')
             print('当前的allmoves为None！！')
-            print('++++++++++++++++++++++结束+++++++++++++++++++++++')
+            # 获得双方剩余棋子的数量
+            dp = DataPercent(all_pieces)
+            red_count, black_count = dp.pieces_perc()
+            # 根据剩余棋子数量判断是否为0
+            if red_count == 0 or black_count == 0:
+                print(f"一方棋子数量为0，best_move为None！！")
+            else:
+                # 不为0则认为当前还有棋子未打开，则随机打开棋子
+                box_to = None
+                while(True):
+                    random_y = randint(0, 3)
+                    random_x = randint(0, 7)
+                    # 产生随机box
+                    box_to = f"box_{random_x}_{random_y}"
+                    # 判断随机产生的box的状态
+                    if all_pieces[box_to]['state'] is False:
+                        break
+                    else:
+                        continue
+                # 将box_to传递给best_move
+                best_move = MoveNodes(None, None, '打开', None, box_to, None)
+                print(f"随机打开box成为best_move： {box_to}")
             return best_move
         print(f"当player1color为 [{player1Color}] 时， allmove的值：")
         for move in all_moves:
@@ -171,38 +193,106 @@ class MinMax():
 
 
 if __name__ == '__main__':
-    all_pieces = {'box_0_0': {'box_key': None, 'state': None},
-                    'box_0_1': {'box_key': None, 'state': None},
-                    'box_0_2': {'box_key': None, 'state': None},
-                    'box_0_3': {'box_key': None, 'state': None},
-                    'box_1_0': {'box_key': None, 'state': None},
-                    'box_1_1': {'box_key': None, 'state': None},
-                    'box_1_2': {'box_key': None, 'state': None},
-                    'box_1_3': {'box_key': 'red_zu4', 'state': True},
-                    'box_2_0': {'box_key': None, 'state': None},
-                    'box_2_1': {'box_key': None, 'state': None},
-                    'box_2_2': {'box_key': None, 'state': None},
-                    'box_2_3': {'box_key': None, 'state': None},
-                    'box_3_0': {'box_key': None, 'state': None},
-                    'box_3_1': {'box_key': None, 'state': None},
-                    'box_3_2': {'box_key': None, 'state': None},
-                    'box_3_3': {'box_key': 'red_jiang1', 'state': True},
-                    'box_4_0': {'box_key': 'red_ju1', 'state': True},
-                    'box_4_1': {'box_key': 'black_zu3', 'state': False},
-                    'box_4_2': {'box_key': 'red_ju2', 'state': True},
-                    'box_4_3': {'box_key': 'red_pao1', 'state': True},
-                    'box_5_0': {'box_key': None, 'state': None},
-                    'box_5_1': {'box_key': None, 'state': None},
-                    'box_5_2': {'box_key': None, 'state': None},
-                    'box_5_3': {'box_key': 'red_shi2', 'state': True},
-                    'box_6_0': {'box_key': 'black_shi2', 'state': False},
-                    'box_6_1': {'box_key': None, 'state': None},
-                    'box_6_2': {'box_key': None, 'state': None},
-                    'box_6_3': {'box_key': None, 'state': None},
-                    'box_7_0': {'box_key': 'black_jiang1', 'state': False},
-                    'box_7_1': {'box_key': 'red_xiang2', 'state': True},
-                    'box_7_2': {'box_key': None, 'state': None},
-                    'box_7_3': {'box_key': None, 'state': None}
-                  }
-    move = MinMax.search_next_move(all_pieces, 'red', depth=1)
+    # zu追着jiang跑的问题
+    # all_pieces = {'box_0_0': {'box_key': None, 'state': None},
+    #                 'box_0_1': {'box_key': 'red_shi2', 'state': False},
+    #                 'box_0_2': {'box_key': None, 'state': None},
+    #                 'box_0_3': {'box_key': 'black_jiang1', 'state': False},
+    #                 'box_1_0': {'box_key': 'red_ma2', 'state': True},
+    #                 'box_1_1': {'box_key': None, 'state': None},
+    #                 'box_1_2': {'box_key': None, 'state': None},
+    #                 'box_1_3': {'box_key': 'red_jiang1', 'state': True},
+    #                 'box_2_0': {'box_key': 'red_zu3', 'state': False},
+    #                 'box_2_1': {'box_key': None, 'state': None},
+    #                 'box_2_2': {'box_key': 'black_zu1', 'state': True},
+    #                 'box_2_3': {'box_key': None, 'state': None},
+    #                 'box_3_0': {'box_key': 'black_xiang2', 'state': False},
+    #                 'box_3_1': {'box_key': None, 'state': None},
+    #                 'box_3_2': {'box_key': None, 'state': None},
+    #                 'box_3_3': {'box_key': None, 'state': None},
+    #                 'box_4_0': {'box_key': 'red_ju1', 'state': False},
+    #                 'box_4_1': {'box_key': 'red_zu2', 'state': True},
+    #                 'box_4_2': {'box_key': None, 'state': None},
+    #                 'box_4_3': {'box_key': None, 'state': None},
+    #                 'box_5_0': {'box_key': 'black_ma2', 'state': False},
+    #                 'box_5_1': {'box_key': None, 'state': None},
+    #                 'box_5_2': {'box_key': None, 'state': None},
+    #                 'box_5_3': {'box_key': None, 'state': None},
+    #                 'box_6_0': {'box_key': 'black_shi1', 'state': False},
+    #                 'box_6_1': {'box_key': 'black_zu3', 'state': False},
+    #                 'box_6_2': {'box_key': 'red_zu5', 'state': False},
+    #                 'box_6_3': {'box_key': 'red_pao1', 'state': False},
+    #                 'box_7_0': {'box_key': 'black_zu4', 'state': False},
+    #                 'box_7_1': {'box_key': 'black_pao1', 'state': False},
+    #                 'box_7_2': {'box_key': 'black_ju2', 'state': False},
+    #                 'box_7_3': {'box_key': 'red_pao2', 'state': False}}
+    a = 1
+    # 无合适打开的棋子，但实际上还有棋子未打开，而best move为none的问题：
+    # all_pieces = {'box_0_0': {'box_key': None, 'state': None},
+    #                 'box_0_1': {'box_key': None, 'state': None},
+    #                 'box_0_2': {'box_key': None, 'state': None},
+    #                 'box_0_3': {'box_key': None, 'state': None},
+    #                 'box_1_0': {'box_key': None, 'state': None},
+    #                 'box_1_1': {'box_key': None, 'state': None},
+    #                 'box_1_2': {'box_key': None, 'state': None},
+    #                 'box_1_3': {'box_key': 'red_zu1', 'state': True},
+    #                 'box_2_0': {'box_key': None, 'state': None},
+    #                 'box_2_1': {'box_key': None, 'state': None},
+    #                 'box_2_2': {'box_key': None, 'state': None},
+    #                 'box_2_3': {'box_key': None, 'state': None},
+    #                 'box_3_0': {'box_key': None, 'state': None},
+    #                 'box_3_1': {'box_key': None, 'state': None},
+    #                 'box_3_2': {'box_key': None, 'state': None},
+    #                 'box_3_3': {'box_key': 'red_jiang1', 'state': True},
+    #                 'box_4_0': {'box_key': 'red_ju1', 'state': True},
+    #                 'box_4_1': {'box_key': 'black_zu2', 'state': False},
+    #                 'box_4_2': {'box_key': 'red_ju2', 'state': True},
+    #                 'box_4_3': {'box_key': 'red_pao1', 'state': True},
+    #                 'box_5_0': {'box_key': None, 'state': None},
+    #                 'box_5_1': {'box_key': None, 'state': None},
+    #                 'box_5_2': {'box_key': None, 'state': None},
+    #                 'box_5_3': {'box_key': 'red_shi1', 'state': True},
+    #                 'box_6_0': {'box_key': 'black_shi1', 'state': False},
+    #                 'box_6_1': {'box_key': None, 'state': None},
+    #                 'box_6_2': {'box_key': None, 'state': None},
+    #                 'box_6_3': {'box_key': None, 'state': None},
+    #                 'box_7_0': {'box_key': 'black_jiang1', 'state': False},
+    #                 'box_7_1': {'box_key': 'red_xiang1', 'state': True},
+    #                 'box_7_2': {'box_key': None, 'state': None},
+    #                 'box_7_3': {'box_key': None, 'state': None}}
+    a = 2
+    # 明知要被吃掉还要去吃对方棋子的问题：
+    all_pieces = {'box_0_0': {'box_key': 'red_zu1', 'state': False},
+                  'box_0_1': {'box_key': 'black_pao1', 'state': False},
+                  'box_0_2': {'box_key': 'red_zu4', 'state': False},
+                  'box_0_3': {'box_key': 'red_zu5', 'state': False},
+                  'box_1_0': {'box_key': 'black_xiang1', 'state': False},
+                  'box_1_1': {'box_key': 'black_zu1', 'state': False},
+                  'box_1_2': {'box_key': 'black_shi2', 'state': False},
+                  'box_1_3': {'box_key': 'black_zu3', 'state': False},
+                  'box_2_0': {'box_key': 'black_zu4', 'state': False},
+                  'box_2_1': {'box_key': 'red_shi1', 'state': False},
+                  'box_2_2': {'box_key': 'black_ma2', 'state': False},
+                  'box_2_3': {'box_key': 'red_ma2', 'state': False},
+                  'box_3_0': {'box_key': 'red_ju1', 'state': False},
+                  'box_3_1': {'box_key': 'black_zu2', 'state': True},
+                  'box_3_2': {'box_key': 'red_zu2', 'state': False},
+                  'box_3_3': {'box_key': 'black_xiang2', 'state': True},
+                  'box_4_0': {'box_key': 'black_pao2', 'state': False},
+                  'box_4_1': {'box_key': 'black_ju2', 'state': True},
+                  'box_4_2': {'box_key': 'red_zu3', 'state': True},
+                  'box_4_3': {'box_key': 'black_shi1', 'state': True},
+                  'box_5_0': {'box_key': 'red_pao2', 'state': False},
+                  'box_5_1': {'box_key': 'red_xiang1', 'state': True},
+                  'box_5_2': {'box_key': 'red_ju2', 'state': False},
+                  'box_5_3': {'box_key': 'black_jiang1', 'state': False},
+                  'box_6_0': {'box_key': 'black_ju1', 'state': False},
+                  'box_6_1': {'box_key': 'red_xiang2', 'state': False},
+                  'box_6_2': {'box_key': 'black_ma1', 'state': False},
+                  'box_6_3': {'box_key': 'red_pao1', 'state': False},
+                  'box_7_0': {'box_key': 'red_shi2', 'state': False},
+                  'box_7_1': {'box_key': 'black_zu5', 'state': False},
+                  'box_7_2': {'box_key': 'red_jiang1', 'state': False},
+                  'box_7_3': {'box_key': 'red_ma1', 'state': False}}
+    move = MinMax.search_next_move(all_pieces, 'black', depth=1)
     print(f"best_move:{move.box_name_from}===>>>{move.box_from}===>>>{move.box_action}===>>>{move.box_name_to}===>>>{move.box_to}===>>>{move.box_res}===>>>{move.score}")

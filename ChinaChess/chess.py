@@ -12,7 +12,6 @@ import os
 import threading
 import json
 import timeit
-from time import sleep
 from datetime import datetime
 from tkinter import *
 from tkinter import dialog
@@ -70,7 +69,8 @@ class Chess():
         self.isBreak = False
         # 游戏开始，写入游戏开始信息
         self.game_begin_time = datetime.now()
-        self.begin_str = "*" * 20 + setting.begin_str + "*" * 20
+        self.begin_str = "*" * 20 + '人机对战模式' + "*" * 20 + '\n'
+        self.begin_str += "*" * 20 + setting.begin_str + "*" * 20
         self.write_str = ''
         # 定义需要写入的文件为info文件，info文件拼接时间作为文件名
         self.info_file = setting.info_file_name
@@ -82,8 +82,10 @@ class Chess():
         common.write_file(filename=self.info_file, write_value=json.dumps(self.all_pieces))
         # 设置走棋音效是否播放开关
         self.is_play = True
-        # 设置游戏模式为人机还是双人对战，开局默认为空
-        self.is_play_vs_computer = None
+        # 设置游戏模式为人机还是双人对战，开局默认为人机对战模式
+        self.is_player_vs_computer = True
+        # 设置锁定玩家1的开关，默认不锁定，当开启玩家2的AI且玩家2走棋时锁定
+        self.lock_player1 = False
         # 加载目录菜单
         self.init_menu()
         # 加载窗体内容
@@ -114,6 +116,8 @@ class Chess():
             server_menu.add_command(label='退出游戏', command=self.close_window, compound=LEFT)
         # 为模式功能添加模式列表
         self.mode_var = IntVar()
+        # 设置单选按钮默认选择第一个
+        self.mode_var.set(1)
         mode_menu.add_radiobutton(label='人机对战', command=self.play_mode, variable=self.mode_var, value=1)
         mode_menu.add_radiobutton(label='双人对战', command=self.play_mode, variable=self.mode_var, value=2)
         # 为operation_menu添加菜单项
@@ -136,9 +140,34 @@ class Chess():
 
     # 为模式菜单，添加功能
     def play_mode(self):
-
+        # 获得玩家选择的对战模式
         mode_id = self.mode_var.get()
-        self.is_play_vs_computer = True if mode_id == 1 else False
+        mode_value = '双人' if mode_id == 2 else '人机'
+        # 当前为人机模式，玩家切换为双人模式，或者当前为双人模式，玩家切换为人机模式
+        if (self.is_player_vs_computer is True and mode_id == 2) or (self.is_player_vs_computer is False and mode_id == 1):
+            # 弹框提示
+            dialog_value = {
+                'title': '切换游戏模式',
+                'text': f"切换游戏模式则当前正在进行的游戏将不能保存，确定要切换到{mode_value}对战模式吗？",
+                'bitmap': 'warning',
+                'default': 1,
+                'strings': ('确定', '取消')
+            }
+            d = dialog.Dialog(self.master, dialog_value)
+            # 选择确定按钮
+            if d.num == 0:
+                # 重新开始游戏
+                self.reset_game_start(write_won='', is_normal_over=False)
+                # 更改对战模式的状态
+                if mode_id == 1:
+                    self.is_player_vs_computer = True
+                    self.begin_str = "*" * 20 + '人机对战模式' + "*" * 20 + '\n'
+                else:
+                    self.is_player_vs_computer = False
+                    self.begin_str = "*" * 20 + '双人对战模式' + "*" * 20 + '\n'
+                # 写入info文件
+                self.begin_str += "*" * 20 + setting.begin_str + "*" * 20
+                common.write_file(filename=self.info_file, write_value=self.begin_str)
 
     # 为关于菜单，打开自定义对话框展示版本信息等
     def about_dialog(self):
@@ -278,7 +307,7 @@ class Chess():
     # 初始化窗体内容
     def init_widgets(self):
         # 加载游戏模式界面
-        MyDialog(self.master, widget='start', title='开始游戏', img=red_jiang_img)
+        # MyDialog(self.master, widget='start', title='开始游戏', img=red_jiang_img)
         # 设置画布
         self.cv = Canvas(self.master, bg=setting.bg_color)
         self.cv.pack(fill=BOTH, expand=YES)
@@ -391,16 +420,16 @@ class Chess():
         self.second_selected_value = None
 
     # 重置游戏开始状态
-    def reset_game_start(self, write_won):
-        # 加载游戏胜利对话框
-        MyDialog(self.master, widget='over', title=f'第{self.totalCount}局游戏结束', img=win_img, totalCount=self.totalCount, writeWin=write_won)
+    def reset_game_start(self, write_won, is_normal_over=True):
+        if is_normal_over:
+            # 加载游戏胜利对话框
+            MyDialog(self.master, widget='over', title=f'第{self.totalCount}局游戏结束', img=win_img, totalCount=self.totalCount, writeWin=write_won)
         # 清空棋盘
         for i in range(8):
             for j in range(4):
                 if self.box_img_dict[f"box_{i}_{j}"] is not None:
                     self.cv.delete(self.box_img_dict[f"box_{i}_{j}"])
         # 重新加载棋子背面图片
-        # self.box_back_dict = self.load_pieces_back()
         self.box_img_dict = {}
         self.load_pieces_back()
         # 加载最开始的玩家信息
@@ -421,10 +450,16 @@ class Chess():
         elif write_won == "本局游戏为平局!":
             self.cv.itemconfig(self.player1_tie, text=f'打平：{self.tieCount} 局')
             self.cv.itemconfig(self.player2_tie, text=f'打平：{self.tieCount} 局')
-        self.log.info("游戏结束：初始化各个参数==>开始")
+        elif write_won == '':
+            # 重置玩家状态信息
+            self.cv.itemconfig(self.player1_won, text=f'胜利：0 局')
+            self.cv.itemconfig(self.player1_tie, text=f'打平：0 局')
+            self.cv.itemconfig(self.player2_won, text=f'胜利：0 局')
+            self.cv.itemconfig(self.player2_tie, text=f'打平：0 局')
         # 初始化所有棋子
+        self.log.info("游戏结束：初始化各个参数==>开始")
         self.all_pieces = game.box_pieces()
-        #
+        # 重置参数值
         self.reset_first_state()
         # 初始化玩家消息参数
         self.nowPlayer = self.player1
@@ -437,7 +472,9 @@ class Chess():
 
     # 打印各个参数的值
     def print_log(self):
+        self.log.info(f"打印参数值==>开始")
         self.log.info(f"all_pieces: {self.all_pieces}")
+        self.log.info(f"self.is_player_vs_computer: {self.is_player_vs_computer}")
         self.log.info(f"self.is_first_selected: {self.is_first_selected}")
         self.log.info(f"self.first_selected_img: {self.first_selected_img}")
         self.log.info(f"self.first_selected_value: {self.first_selected_value}")
@@ -449,6 +486,7 @@ class Chess():
         self.log.info(f"self.numCount: {self.numCount}")
         self.log.info(f"self.allCount: {self.allCount}")
         self.log.info(f"self.box_img_dict: {self.box_img_dict}")
+        self.log.info(f"打印参数值==>结束")
         self.log.info("=" * 50)
 
     # 处理棋子对比结果，更改棋盘上的棋子格局
@@ -521,69 +559,73 @@ class Chess():
 
     # 鼠标左键拖动事件：
     def b1_move_handler(self, event):
-        if self.first_selected_value is not None and self.second_selected_value is None:
-            box_xy = self.first_selected_value
-            # allpieces必须为True的状态，而且还必须是自己方阵的棋子才允许拖动
-            if self.all_pieces[box_xy]['state'] is True:
-                # 确定鼠标的有效矩形位置
-                min_area_x = setting.piece_first_x
-                min_area_y = setting.piece_first_y
-                max_area_x = min_area_x + 8 * setting.piece_size
-                max_area_y = min_area_y + 4 * setting.piece_size
-                # 确认鼠标是在棋盘上有效的矩形范围之内
-                if (min_area_x < event.x < max_area_x) and (min_area_y < event.y < max_area_y):
-                    mouse_x_not = [i * 100 + min_area_x for i in range(1, 9)]
-                    mouse_y_not = [i * 100 + min_area_y for i in range(1, 5)]
-                    # 鼠标不能在棋盘线上
-                    if (event.x not in mouse_x_not) and (event.y not in mouse_y_not):
-                        # 拖动棋子到鼠标位置
-                        self.cv.coords(self.box_img_dict[box_xy], event.x-setting.piece_size/2, event.y-setting.piece_size/2)
+        if self.lock_player1 is False:
+            if self.first_selected_value is not None and self.second_selected_value is None:
+                box_xy = self.first_selected_value
+                # allpieces必须为True的状态，而且还必须是自己方阵的棋子才允许拖动
+                if self.all_pieces[box_xy]['state'] is True:
+                    # 确定鼠标的有效矩形位置
+                    min_area_x = setting.piece_first_x
+                    min_area_y = setting.piece_first_y
+                    max_area_x = min_area_x + 8 * setting.piece_size
+                    max_area_y = min_area_y + 4 * setting.piece_size
+                    # 确认鼠标是在棋盘上有效的矩形范围之内
+                    if (min_area_x < event.x < max_area_x) and (min_area_y < event.y < max_area_y):
+                        mouse_x_not = [i * 100 + min_area_x for i in range(1, 9)]
+                        mouse_y_not = [i * 100 + min_area_y for i in range(1, 5)]
+                        # 鼠标不能在棋盘线上
+                        if (event.x not in mouse_x_not) and (event.y not in mouse_y_not):
+                            # 拖动棋子到鼠标位置
+                            self.cv.coords(self.box_img_dict[box_xy], event.x-setting.piece_size/2, event.y-setting.piece_size/2)
 
     # 鼠标左键释放事件：
     def b1_release_handler(self, event):
-        box2_x, box2_y = game.get_box_xy(event.x, event.y)
-        box2_xy = f"box_{box2_x}_{box2_y}"
-        box1_xy = self.first_selected_value
-        if box1_xy is not None:
-            box1_name = self.all_pieces[box1_xy]['box_key']
-            box2_name = self.all_pieces[box2_xy]['box_key']
-            box1_x = int(box1_xy.split('_')[1])
-            box1_y = int(box1_xy.split('_')[-1])
-            box1_center_x = box1_x * setting.piece_size + setting.piece_first_x
-            box1_center_y = box1_y * setting.piece_size + setting.piece_first_y
-            # 释放时的位置棋子为False，则吃棋无效，将box1归还到原来的位置
-            if self.all_pieces[box2_xy]['state'] is False:
-                self.cv.coords(self.box_img_dict[box1_xy], box1_center_x, box1_center_y)
-            else:
-                box1_color = self.all_pieces[box1_xy]['box_key'].split('_')[0]
-                box2_color = None
-                if self.all_pieces[box2_xy]['state'] is not None:
-                    box2_color = self.all_pieces[box2_xy]['box_key'].split('_')[0]
-                # box1color和box2不同，两个棋子比较大小
-                if box1_color != box2_color:
-                    self.log.info("=====两个棋子开始比较=====")
-                    self.log.info(f"box1_xy : box1_xy ==> {box1_xy} : {box2_xy}")
-                    self.log.info(f"box1 : box2 ==> {box1_name} : {box2_name}")
-                    vs_res = game.piece_VS_piece(box1_xy, box2_xy, self.all_pieces)
-                    self.log.info(f"比较之后的结果: {vs_res}")
-                    if vs_res[0] is False:
-                        # 播放走棋错误的音效
-                        if self.is_play is True:
-                            play_music.load_play_sound(setting.cw)
-                    self.log.info("=====两个棋子比较结束=====")
-                    result = self.vs_result(vs_res[0], box1_xy, box2_xy, box1_name, box2_name)
-                    if result is False:
-                        self.cv.coords(self.box_img_dict[box1_xy], box1_center_x, box1_center_y)
-                    else:
-                        # 使用player2的AI功能
-                        self.player2_ai()
-                # box1color和box2相同，则吃棋无效，将box1归还到原来的位置
-                else:
+        if game.get_box_xy(event.x, event.y) and self.lock_player1 is False:
+            box2_x, box2_y = game.get_box_xy(event.x, event.y)
+            box2_xy = f"box_{box2_x}_{box2_y}"
+            box1_xy = self.first_selected_value
+            if box1_xy is not None:
+                box1_name = self.all_pieces[box1_xy]['box_key']
+                box2_name = self.all_pieces[box2_xy]['box_key']
+                box1_x = int(box1_xy.split('_')[1])
+                box1_y = int(box1_xy.split('_')[-1])
+                box1_center_x = box1_x * setting.piece_size + setting.piece_first_x
+                box1_center_y = box1_y * setting.piece_size + setting.piece_first_y
+                # 释放时的位置棋子为False，则吃棋无效，将box1归还到原来的位置
+                if self.all_pieces[box2_xy]['state'] is False:
                     self.cv.coords(self.box_img_dict[box1_xy], box1_center_x, box1_center_y)
+                else:
+                    box1_color = self.all_pieces[box1_xy]['box_key'].split('_')[0]
+                    box2_color = None
+                    if self.all_pieces[box2_xy]['state'] is not None:
+                        box2_color = self.all_pieces[box2_xy]['box_key'].split('_')[0]
+                    # box1color和box2不同，两个棋子比较大小
+                    if box1_color != box2_color:
+                        self.log.info("=====两个棋子开始比较=====")
+                        self.log.info(f"box1_xy : box1_xy ==> {box1_xy} : {box2_xy}")
+                        self.log.info(f"box1 : box2 ==> {box1_name} : {box2_name}")
+                        vs_res = game.piece_VS_piece(box1_xy, box2_xy, self.all_pieces)
+                        self.log.info(f"比较之后的结果: {vs_res}")
+                        if vs_res[0] is False:
+                            # 播放走棋错误的音效
+                            if self.is_play is True:
+                                play_music.load_play_sound(setting.cw)
+                        self.log.info("=====两个棋子比较结束=====")
+                        result = self.vs_result(vs_res[0], box1_xy, box2_xy, box1_name, box2_name)
+                        if result is False:
+                            self.cv.coords(self.box_img_dict[box1_xy], box1_center_x, box1_center_y)
+                        else:
+                            # 对游戏是否结束做判断
+                            self.game_over()
+                            # 使用player2的AI功能
+                            self.player2_ai()
+                    # box1color和box2相同，则吃棋无效，将box1归还到原来的位置
+                    else:
+                        self.cv.coords(self.box_img_dict[box1_xy], box1_center_x, box1_center_y)
 
     # 鼠标移动悬停事件：获取鼠标坐标，画一个高亮的圆，表示当前鼠标在这个棋子上
     def move_handler(self, event):
-        if game.get_box_xy(event.x, event.y):
+        if game.get_box_xy(event.x, event.y) and self.lock_player1 is False:
             box_x, box_y = game.get_box_xy(event.x, event.y)
             box_center_x = box_x * setting.piece_size + setting.piece_first_x + setting.piece_size / 2
             box_center_y = box_y * setting.piece_size + setting.piece_first_y + setting.piece_size / 2
@@ -593,7 +635,7 @@ class Chess():
 
     # 鼠标左键按下事件：
     def click_handler(self, event):
-        if game.get_box_xy(event.x, event.y):
+        if game.get_box_xy(event.x, event.y) and self.lock_player1 is False:
             box_x, box_y = game.get_box_xy(event.x, event.y)
             box_xy = f'box_{box_x}_{box_y}'
             self.pieces_action(box_x, box_y)
@@ -748,6 +790,11 @@ class Chess():
                 self.log.info("=====两个棋子比较结束=====")
                 self.print_log()
                 self.vs_result(vs_res[0], box1_xy, box2_xy, box1_name, box2_name)
+        # 使用player2的AI功能
+        self.player2_ai()
+
+    # 判断游戏是否结束
+    def game_over(self):
         # 用numCount和allCount比较，num比all大的时候才能进入判断是否游戏结束
         if self.numCount >= self.allCount:
             is_over = game.is_game_over(self.all_pieces, self.nowPlayer, self.player1Color, self.player2Color)
@@ -781,27 +828,31 @@ class Chess():
                 common.write_file(filename=self.info_file, write_value=end_str)
                 # 重新开始游戏，重置各个参数
                 self.reset_game_start(write_won)
-        # 使用player2的AI功能
-        self.player2_ai()
 
     # 为player2添加AI智能走棋
     def player2_ai(self, depth=1):
-        if self.nowPlayer == self.player2 and self.is_play_vs_computer is True:
-            # 玩家2正在走棋时禁止玩家1在棋盘上操作（待完成）
+        if self.nowPlayer == self.player2 and self.is_player_vs_computer is True:
+            # 玩家2正在走棋时禁止玩家1在棋盘上操作，锁定玩家1
+            self.lock_player1 = True
             # 计算AI走棋消耗的时间
             t_start = timeit.default_timer()
             best_move = MinMax.search_next_move(self.all_pieces, self.player1Color, depth)
             t_time = timeit.default_timer() - t_start
-            self.log.info(f'系统player2的选择是：{best_move.box_from}==>>{best_move.box_action}==>>{best_move.box_to}')
-            box_xy = best_move.box_to.split('_')
-            box_x = box_xy[1]
-            box_y = box_xy[-1]
-            # 设置定时器对player2走棋设置延迟时间，默认2s
-            if t_time <= setting.player2_thinktime:
-                t_time = setting.player2_thinktime
-            timer = threading.Timer(t_time, self.pieces_action, (box_x, box_y, best_move.box_from))
-            timer.start()
-
+            # 对AI的最佳走棋步骤判断
+            if best_move is not None:
+                self.log.info(f'系统player2的选择是：{best_move.box_from}==>>{best_move.box_action}==>>{best_move.box_to}')
+                box_xy = best_move.box_to.split('_')
+                box_x = box_xy[1]
+                box_y = box_xy[-1]
+                # 设置定时器对player2走棋设置延迟时间，默认2s
+                if t_time <= setting.player2_thinktime:
+                    t_time = setting.player2_thinktime
+                timer = threading.Timer(t_time, self.pieces_action, (box_x, box_y, best_move.box_from))
+                timer.start()
+            # 判断游戏是否结束
+            self.game_over()
+            # 释放玩家1的锁定
+            self.lock_player1 = False
 
     # 关闭窗口事件
     def close_window(self):

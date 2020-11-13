@@ -24,9 +24,9 @@ class DataPercent():
                 else:
                     black_num += 1
         # print(f"red_num : {red_num}, black_num : {black_num}")
-        red_percent = red_num / 16
-        black_percent = black_num / 16
-        return (red_percent, black_percent)
+        # red_percent = red_num / 16
+        # black_percent = black_num / 16
+        return (red_num, black_num)
 
     # 计算棋子的价值比例
     def piece_value(self):

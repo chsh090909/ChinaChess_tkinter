@@ -9,11 +9,13 @@
 
 @content:
 """
-# import random
+import random
 # import time
 # from functools import reduce
 # from tkinter import *
 
-print(1 - 1 / 16)
+random_y = random.randint(0, 3)
+random_x = random.randint(0, 7)
+print(random_int)
 
 

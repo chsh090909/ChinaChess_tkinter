@@ -248,7 +248,7 @@ class Moves():
                         if box_index > box3_index:
                             # 特殊情况：box_name为zu，box3_name为jiang，是可以被吃掉的
                             if box_name == 'zu' and box3_name == 'jiang':
-                                if box1_state is None:
+                                if box1_state is not None:
                                     score += 1000
                             elif box_name == 'zu' and box3_name == 'ju':
                                 if box1_state is False:
@@ -272,6 +272,7 @@ class Moves():
                                 elif box_name == 'pao' and box3_name == 'zu':
                                     score = 0
                                 else:
+                                    # 判断两个棋子是否在对角线上，而且田字格里没有其他的棋子
                                     box_x = int(box_xy.split('_')[1])
                                     box_y = int(box_xy.split('_')[-1])
                                     box3_x, box3_y = box3

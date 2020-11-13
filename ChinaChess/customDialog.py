@@ -92,11 +92,11 @@ class MyDialog(Toplevel):
     # 创建自定义对话框的内容--游戏结束对话框
     def init_widget_over(self, master):
         # 创建画布，获得焦点
-        self.cv = Canvas(master, bg=self.setting.bg_color, width=self.width, height=self.height)
-        self.cv.pack(fill=BOTH, expand=YES)
-        self.cv.focus_set()
+        cv = Canvas(master, bg=self.setting.bg_color, width=self.width, height=self.height)
+        cv.pack(fill=BOTH, expand=YES)
+        cv.focus_set()
         # 添加一个图片
-        self.cv.create_image(self.width/2, 90, image=self.img, anchor=CENTER)
+        cv.create_image(self.width / 2, 90, image=self.img, anchor=CENTER)
         # 添加一行文字
         totalCount = self.kwargs.get('totalCount')
         write_won = self.kwargs.get('writeWin')
@@ -105,38 +105,71 @@ class MyDialog(Toplevel):
         text_show_over = f"第{totalCount}局游戏结束！"
         text_show_won = f"{write_won}"
         text_show_continue = f"(点击确定按钮开始下一局,7s后自动关闭)"
-        self.cv.create_text(self.width/2, 205, text=text_show_over, font=font_show_won, anchor=CENTER)
-        self.show_won = self.cv.create_text(self.width/2, 240, text=text_show_won, font=font_show_won, anchor=CENTER, fill='red')
-        self.shown_continue = self.cv.create_text(self.width/2, 275, text=text_show_continue, font=font_show_continue, anchor=CENTER)
-        #
-        self.times = 0
-        self.color_list = ['red', 'orange', 'yellow', 'green', 'blue', '#4B0082', 'purple', 'black']
-        self.change_font_color()
+        cv.create_text(self.width / 2, 205, text=text_show_over, font=font_show_won, anchor=CENTER)
+        show_won = cv.create_text(self.width / 2, 240, text=text_show_won, font=font_show_won, anchor=CENTER, fill='red')
+        shown_continue = cv.create_text(self.width / 2, 275, text=text_show_continue, font=font_show_continue, anchor=CENTER)
+        # 设置字体变换颜色
+        times = 0
+        self.change_font_color(times, cv, show_won, shown_continue)
         # 添加一个关闭按钮
-        self.close_btn = ttk.Button(self.cv, text='确 定')
-        self.close_btn.place(x=140, y=410)
-        self.close_btn.bind('<ButtonRelease-1>', self.cancel_click)
+        close_btn = ttk.Button(cv, text='确 定')
+        close_btn.place(x=140, y=410)
+        close_btn.bind('<ButtonRelease-1>', self.cancel_click)
+        # # 创建画布，获得焦点
+        # self.cv = Canvas(master, bg=self.setting.bg_color, width=self.width, height=self.height)
+        # self.cv.pack(fill=BOTH, expand=YES)
+        # self.cv.focus_set()
+        # # 添加一个图片
+        # self.cv.create_image(self.width/2, 90, image=self.img, anchor=CENTER)
+        # # 添加一行文字
+        # totalCount = self.kwargs.get('totalCount')
+        # write_won = self.kwargs.get('writeWin')
+        # font_show_won = (self.setting.font_style, 25)
+        # font_show_continue = ('华文新魏', 14)
+        # text_show_over = f"第{totalCount}局游戏结束！"
+        # text_show_won = f"{write_won}"
+        # text_show_continue = f"(点击确定按钮开始下一局,7s后自动关闭)"
+        # self.cv.create_text(self.width/2, 205, text=text_show_over, font=font_show_won, anchor=CENTER)
+        # self.show_won = self.cv.create_text(self.width/2, 240, text=text_show_won, font=font_show_won, anchor=CENTER, fill='red')
+        # self.shown_continue = self.cv.create_text(self.width/2, 275, text=text_show_continue, font=font_show_continue, anchor=CENTER)
+        # # 设置字体变换颜色
+        # self.times = 0
+        # self.color_list = ['red', 'orange', 'yellow', 'green', 'blue', '#4B0082', 'purple', 'black']
+        # self.change_font_color()
+        # # 添加一个关闭按钮
+        # self.close_btn = ttk.Button(self.cv, text='确 定')
+        # self.close_btn.place(x=140, y=410)
+        # self.close_btn.bind('<ButtonRelease-1>', self.cancel_click)
 
     # 创建自定义对话框内容--游戏开始选择游戏模式
     def init_widget_start(self, master):
         # 创建画布，获得焦点
-        self.cv = Canvas(master, bg=self.setting.bg_color, width=self.width, height=self.height)
-        self.cv.pack(fill=BOTH, expand=YES)
-        self.cv.focus_set()
+        cv = Canvas(master, bg=self.setting.bg_color, width=self.width, height=self.height)
+        cv.pack(fill=BOTH, expand=YES)
+        cv.focus_set()
         # 添加一个图片
-        self.cv.create_image(self.width / 2, 90, image=self.img, anchor=CENTER)
+        cv.create_image(self.width/2, 60, image=self.img, anchor=CENTER)
         # 添加一行文字
+        font_str = (self.setting.font_style, 20)
+        text_str = f"游戏开始，请选择对战模式！"
+        cv.create_text(self.width/2, 120, text=text_str, font=font_str, anchor=CENTER)
+        # 画一个矩形框，添加两个单选按钮
+        cv.create_rectangle(100, 150, 250, 200, outline='red')
+        # 添加一个关闭按钮
+        close_btn = ttk.Button(cv, text='确 定')
+        close_btn.place(x=140, y=410)
+        close_btn.bind('<ButtonRelease-1>', self.cancel_click)
 
     # 改变字体颜色
-    def change_font_color(self):
-        if self.times <= 7:
-            color = self.color_list[self.times]
-            self.cv.itemconfig(self.show_won, fill=color)
-            self.cv.itemconfig(self.shown_continue, text=f"(点击确定按钮开始下一局,{7 - self.times}s后自动关闭)")
-            if self.times == 7:
+    def change_font_color(self, times, cv, show_won, shown_continue):
+        color_list = ['red', 'orange', 'yellow', 'green', 'blue', '#4B0082', 'purple', 'black']
+        if times <= 7:
+            cv.itemconfig(show_won, fill=color_list[times])
+            cv.itemconfig(shown_continue, text=f"(点击确定按钮开始下一局,{7 - times}s后自动关闭)")
+            if times == 7:
                 self.cancel_click()
-            self.times += 1
-            t = threading.Timer(1, self.change_font_color)
+            times += 1
+            t = threading.Timer(1, self.change_font_color, (times, cv, show_won, shown_continue))
             t.start()
 
     def cancel_click(self, event=None):
