@@ -10,7 +10,7 @@
 """
 import random
 from math import fabs
-from ChinaChess.loggerPrint import LoggerPrint
+from ChineseChess.loggerPrint import LoggerPrint
 
 class GameFunction():
     """
@@ -353,7 +353,7 @@ class GameFunction():
             return 'tie'
 
 if __name__ == '__main__':
-    from ChinaChess.settings import Settings
+    from ChineseChess.settings import Settings
     setting = Settings()
     gf = GameFunction(setting)
 

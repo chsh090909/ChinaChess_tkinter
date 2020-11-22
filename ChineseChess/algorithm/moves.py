@@ -8,9 +8,9 @@
 @title:
 @content: 获取AI的可走棋内容
 """
-from ChinaChess.gameFunction import GameFunction
-from ChinaChess.settings import Settings
-from ChinaChess.algorithm.scores import Scores
+from ChineseChess.gameFunction import GameFunction
+from ChineseChess.settings import Settings
+from ChineseChess.algorithm.scores import Scores
 from math import fabs
 
 class MoveNodes():

@@ -13,8 +13,8 @@ from tkinter import *
 from tkinter import ttk
 import threading
 from tkinter import messagebox
-from ChinaChess.settings import Settings
-from ChinaChess.common import Commmon
+from ChineseChess.settings import Settings
+from ChineseChess.common import Commmon
 
 # 自定义对话框类，继承Toplevel
 class MyDialog(Toplevel):

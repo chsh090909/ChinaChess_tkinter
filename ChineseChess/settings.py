@@ -56,16 +56,18 @@ class Settings(object):
         self.help_file = '/help/教你如何玩.pdf'
         # 设置棋子的移动速度
         self.piece_move_speed = 30
+        # 设置vs图片
+        self.vs_image = 'images/vs1.gif'
         # 设置游戏结束图片和大小
-        self.win_image = 'images/win.gif'
+        self.win_image = 'images/win1.gif'
         self.font_win_size = 50
         # 设置走棋步骤记录的文件名称
         self.info_file_name = 'logs/chess.info'
         # 设置日志文件记录位置和名称
         self.log_file_name = 'logs/chess.log'
         # 设置日志记录的格式、日志等级等信息
-        self.sysout_format = "%(levelname)s- %(filename)s:%(funcName)s[line:%(lineno)d] --> %(message)s"
-        self.file_write_format = '%(asctime)s -%(levelname)s- %(filename)s:%(funcName)s[line:%(lineno)d] --> %(message)s'
+        self.sysout_format = "%(levelname)s - %(filename)s:%(funcName)s[line:%(lineno)d] --> %(message)s"
+        self.file_write_format = '%(asctime)s - %(levelname)s - %(filename)s:%(funcName)s[line:%(lineno)d] --> %(message)s'
         self.sysout_level = logging.DEBUG
         self.file_write_level = logging.INFO
         # 设置文件的游戏开头语

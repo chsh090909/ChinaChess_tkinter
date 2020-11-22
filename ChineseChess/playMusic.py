@@ -11,7 +11,7 @@
 import pygame
 import random
 import threading
-from ChinaChess.loggerPrint import LoggerPrint
+from ChineseChess.loggerPrint import LoggerPrint
 
 class PlayMusic():
     # 设置音乐播放标志：0表示自动播放，1表示手动介入

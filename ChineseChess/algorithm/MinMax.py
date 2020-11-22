@@ -3,10 +3,10 @@
 
 from random import randint
 from copy import deepcopy
-from ChinaChess.algorithm.Timer import clock
-from ChinaChess.algorithm.moves import Moves, MoveNodes
-from ChinaChess.algorithm.scores import Scores
-from ChinaChess.algorithm.dataPercent import DataPercent
+from ChineseChess.algorithm.Timer import clock
+from ChineseChess.algorithm.moves import Moves, MoveNodes
+from ChineseChess.algorithm.scores import Scores
+from ChineseChess.algorithm.dataPercent import DataPercent
 
 
 class MinMax():

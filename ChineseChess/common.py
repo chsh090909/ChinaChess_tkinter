@@ -14,9 +14,9 @@ import time
 import os
 import threading
 from PIL import Image, ImageTk
-from ChinaChess.customException import *
-from ChinaChess.loggerPrint import LoggerPrint
-from ChinaChess.settings import Settings
+from ChineseChess.customException import *
+from ChineseChess.loggerPrint import LoggerPrint
+from ChineseChess.settings import Settings
 
 class Commmon():
     def __init__(self, setting):
