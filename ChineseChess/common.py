@@ -30,15 +30,17 @@ class Commmon():
     # 获取当前系统的名称
     def get_system_name(self):
         system_flag = 0
-        if platform.uname().system == 'Darwin' or platform.platform().split('-')[0] == 'Darwin':
+        uname = platform.uname().system
+        system_name = platform.platform().split('-')[0]
+        if uname == 'Darwin' or system_name == 'Darwin':
             # mac系统加载mac配置，设置flag为1
             system_flag = 1
-        elif platform.uname().system == 'Windows' or platform.platform().split('-')[0] == 'Windows':
+        elif uname == 'Windows' or system_name == 'Windows':
             # windows系统加载默认setting设置，设置flag为2
             system_flag = 2
         else:
             system_flag = 3
-        self.log.info(f"当前系统为：{platform.uname().system}")
+        self.log.info(f"当前系统为：{uname}")
         return system_flag
 
     # 压缩图片，改变图片的大小

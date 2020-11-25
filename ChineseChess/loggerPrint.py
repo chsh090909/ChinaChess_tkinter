@@ -32,7 +32,7 @@ class LoggerPrint(object):
             # 打印到控制台
             stream_handler = logging.StreamHandler(sys.stdout)
             # 日志级别
-            stream_handler.setLevel(self.setting.sysout_level)
+            stream_handler.setLevel(self.setting.sysout_level.upper())
             # 日志格式
             sysout_format = logging.Formatter(self.setting.sysout_format)
             stream_handler.setFormatter(sysout_format)
@@ -59,7 +59,7 @@ class LoggerPrint(object):
         # 写入到日志文件
         file_handler = logging.FileHandler(filename=filename, encoding='utf-8')
         # 日志级别
-        file_handler.setLevel(self.setting.file_write_level)
+        file_handler.setLevel(self.setting.file_write_level.upper())
         # 设置日志格式
         filewrite_format = logging.Formatter(self.setting.file_write_format)
         file_handler.setFormatter(filewrite_format)

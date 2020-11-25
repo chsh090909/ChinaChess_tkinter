@@ -109,3 +109,4 @@ venv.bak/
 *.log
 *.info
 demo.py
+._*

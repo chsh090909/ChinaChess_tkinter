@@ -1,8 +1,6 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
-import logging
-
 class Settings(object):
     """
     配置文档
@@ -68,8 +66,8 @@ class Settings(object):
         # 设置日志记录的格式、日志等级等信息
         self.sysout_format = "%(levelname)s - %(filename)s:%(funcName)s[line:%(lineno)d] --> %(message)s"
         self.file_write_format = '%(asctime)s - %(levelname)s - %(filename)s:%(funcName)s[line:%(lineno)d] --> %(message)s'
-        self.sysout_level = logging.DEBUG
-        self.file_write_level = logging.INFO
+        self.sysout_level = 'debug'
+        self.file_write_level = 'info'
         # 设置文件的游戏开头语
         self.begin_str = "本轮游戏开始！！！当前第1局！"
         # 设置文件的游戏结束语
