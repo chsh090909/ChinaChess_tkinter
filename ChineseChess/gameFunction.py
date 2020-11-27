@@ -18,10 +18,10 @@ class GameFunction():
     """
     def __init__(self, setting):
         self.setting = setting
-        self.logger = LoggerPrint(self.setting).printLogToSystem(False)
+        self.logger = LoggerPrint(self.setting).printLogToSystem()
 
     # 将红黑棋子对应的图片，关联起来，存放在字典中
-    def __get_all_pieces(self, piece_flag):
+    def _get_all_pieces(self, piece_flag):
         pieces = []
         for piece in self.setting.pieces_list:
             # value = f"{self.setting.pieces_front}{piece_flag}_{piece}{self.setting.pieces_noun}"
@@ -38,11 +38,9 @@ class GameFunction():
     # 初始化棋子配置
     def box_pieces(self):
         # 获得所有的红黑棋子的dict
-        pieces = self.__get_all_pieces('red')
-        pieces_black = self.__get_all_pieces('black')
+        pieces = self._get_all_pieces('red')
+        pieces_black = self._get_all_pieces('black')
         pieces += pieces_black
-        # 取得所有棋子dict的key
-        # pieces_key_list = list(pieces.keys())
         all_pieces = {}
         for i in range(8):
             for j in range(4):
@@ -75,7 +73,6 @@ class GameFunction():
         box_local_x = box_x * self.setting.piece_size + self.setting.piece_first_x
         box_local_y = box_y * self.setting.piece_size + self.setting.piece_first_y
 
-
     # 加载棋子对应的图片
     def get_piece_image(self):
         pieces_dict = {}
@@ -105,7 +102,6 @@ class GameFunction():
         box1_color = box1_name.split('_')[0]
         box1_value = box1_name.split('_')[1]
         box1_value = box1_value[:-1]
-        # box1_value = box1_value[:-1] if box1_value[-1:].isnumeric() else box1_value
         box1_value_index = value_list.index(box1_value)
         # 如果box1的位置比box2的位置大，则交换他们的值
         if box1_y > box2_y:
@@ -120,20 +116,19 @@ class GameFunction():
                 return [False, 'color', False]
             box2_value = box2_name.split('_')[1]
             box2_value = box2_value[:-1]
-            # box2_value = box2_value[:-1] if box2_value[-1:].isnumeric() else box2_value
             box2_value_index = value_list.index(box2_value)
         else:
-            return self.__other_vs_piece(box1_x, box1_y, box2_x, box2_y, piece_equal=False)
-        # 如果两个棋子相同，返回both
+            return self._other_vs_piece(box1_x, box1_y, box2_x, box2_y, piece_equal=False)
+        # 如果两个棋子相同
         if box1_value_index == box2_value_index:
             if box1_value == 'pao':
                 # '炮'相同时的吃法：
-                # 中间有且只有一个棋子，中间棋子不论打没打开都可以，没有距离限制，最后两个棋子同时失去
-                return self.__pao_vs_piece(box1_x, box1_y, box2_x, box2_y, all_pieces, piece_equal=True)
+                # 中间有且只有一个棋子，中间棋子不论打没打开都可以，没有距离限制
+                return self._pao_vs_piece(box1_x, box1_y, box2_x, box2_y, all_pieces, piece_equal=False)
             else:
                 # 其他相同棋子的吃法：
                 # 只能相邻位置两个棋子，最后也是两个棋子同时失去
-                return self.__other_vs_piece(box1_x, box1_y, box2_x, box2_y, piece_equal=True)
+                return self._other_vs_piece(box1_x, box1_y, box2_x, box2_y, piece_equal=True)
         # 如果两个棋子不相同
         else:
             if box1_value == 'pao':
@@ -141,7 +136,7 @@ class GameFunction():
                 # 1、中间必须有且只有一个棋子，才能吃到对方棋子，没有距离限制；
                 # 2、炮没有大小吃法限制，上到将，下到卒都可以吃；
                 # 3、炮移动只能相邻的格子移动，不能跳着移动；
-                return self.__pao_vs_piece(box1_x, box1_y, box2_x, box2_y, all_pieces, piece_equal=False)
+                return self._pao_vs_piece(box1_x, box1_y, box2_x, box2_y, all_pieces, piece_equal=False)
             else:
                 # 其他的棋子的吃法：
                 # 1、大吃小（将（帅）>士>（象）相>马>车>炮和卒（兵）），两两相同则一起吃掉；
@@ -157,11 +152,11 @@ class GameFunction():
                         # self.logger.info("false原因：jiang在和pao比较")
                         return [False, 'jiang_pao', False]
                     else:
-                        return self.__other_vs_piece(box1_x, box1_y, box2_x, box2_y, piece_equal=False)
+                        return self._other_vs_piece(box1_x, box1_y, box2_x, box2_y, piece_equal=False)
                 elif box1_value_index > box2_value_index:
                     # 最后一种情况：zu只能吃jiang
                     if box1_value == 'zu' and box2_value == 'jiang':
-                        return self.__other_vs_piece(box1_x, box1_y, box2_x, box2_y, piece_equal=False)
+                        return self._other_vs_piece(box1_x, box1_y, box2_x, box2_y, piece_equal=False)
                     elif box1_value == 'zu' and box2_value == 'pao':
                         # self.logger.info("false原因：zu在和pao比较")
                         return [False, 'zu_pao', False]
@@ -170,7 +165,7 @@ class GameFunction():
                         return [False, 'box1<box2', True]
 
     # pao的比较
-    def __pao_vs_piece(self, box1_x, box1_y, box2_x, box2_y, all_pieces, piece_equal=True):
+    def _pao_vs_piece(self, box1_x, box1_y, box2_x, box2_y, all_pieces, piece_equal=True):
         if box1_x == box2_x and box2_y - box1_y > 1:
             between_state_have = 0
             for i in range(box1_y + 1, box2_y):
@@ -208,7 +203,7 @@ class GameFunction():
             return [False, 'box1_noline_box2', False]
 
     # 其他棋子的比较
-    def __other_vs_piece(self, box1_x, box1_y, box2_x, box2_y, piece_equal=True):
+    def _other_vs_piece(self, box1_x, box1_y, box2_x, box2_y, piece_equal=True):
         if (box1_x == box2_x and box2_y - box1_y == 1) or (box1_y == box2_y and box2_x - box1_x == 1):
             if piece_equal is True:
                 # self.logger.info("None：box1和box2相同")
@@ -220,7 +215,7 @@ class GameFunction():
             return [False, 'box1_noline_box2', False]
 
     # 游戏结束判断
-    def is_game_over(self, all_pieces, nowPlayer, player1Color, player2Color):
+    def is_game_over(self, all_pieces, nowPlayer, player1Color):
         # 循环all_pieces中的state得到棋子状态
         true_count = 0
         none_count = 0
@@ -243,16 +238,16 @@ class GameFunction():
         if none_count == 32:
             return 'tie'
         else:
-            # 如果只有一个棋子，则取棋子的颜色return
+            # 只有一个棋子，则取棋子的颜色return
             if true_count == 1:
                 key_list = list(new_pieces.keys())
                 box_color = key_list[0].split('_')[0]
                 return box_color
+            # 有多个棋子，则要分开判断
             else:
                 # 取红黑棋子分别占有多少
                 value_list = self.setting.pieces_list
-                red_count = 0
-                black_count = 0
+                red_count, black_count = 0, 0
                 box_count = len(new_pieces)
                 for key, value in new_pieces.items():
                     box_color = key.split('_')[0]
@@ -266,10 +261,10 @@ class GameFunction():
                 # 如果全部为红色或者黑色，则return
                 if red_count == box_count:
                     return 'red'
-                if black_count == box_count:
+                elif black_count == box_count:
                     return 'black'
                 # 总数为2，红黑棋子各占1个
-                if box_count ==2 and red_count == 1:
+                elif box_count == 2 and red_count == 1:
                     red_x = 0
                     red_y = 0
                     red_value = ''
@@ -283,58 +278,54 @@ class GameFunction():
                             red_x = int(value.split('_')[1])
                             red_y = int(value.split('_')[2])
                             red_value = box_value[:-1]
-                            # red_value = box_value[:-1] if box_value[-1:].isnumeric() else box_value
                         else:
                             black_x = int(value.split('_')[1])
                             black_y = int(value.split('_')[2])
                             black_value = box_value[:-1]
-                            # black_value = box_value[:-1] if box_value[-1:].isnumeric() else box_value
                     red_value_index = value_list.index(red_value)
                     black_value_index = value_list.index(black_value)
-                    #
+                    # 如果红黑双方棋子相同或者是不能相互吃掉的棋子，则为平局
                     if red_value == black_value or \
-                            (red_value == 'jiang' and black_value == 'pao') or \
+                            (red_value in ['jiang', 'pao'] and black_value  in ['jiang', 'pao']) or \
                             (red_value in ['pao', 'zu'] and black_value in ['pao', 'zu']):
                         return 'tie'
                     # 当前玩家和玩家方阵为红方，且红方的棋子比黑方的棋子大，则他们相邻比较的时候就会是平局，红方无法吃掉黑方
                     if (nowPlayer == self.setting.player1_name and player1Color == 'red') or \
-                            (nowPlayer == self.setting.player2_name and player2Color == 'red'):
+                            (nowPlayer == self.setting.player2_name and player1Color == 'black'):
                         if red_value_index > black_value_index:
                             if (red_x == black_x and fabs(red_y - black_y) == 1) or (
                                     red_y == black_y and fabs(red_x - black_x) == 1):
                                 return 'tie'
                     # 黑方也是一样
                     elif (nowPlayer == self.setting.player1_name and player1Color == 'black') or \
-                            (nowPlayer == self.setting.player2_name and player2Color == 'black'):
+                            (nowPlayer == self.setting.player2_name and player1Color == 'red'):
                         if red_value_index < black_value_index:
                             if (red_x == black_x and fabs(red_y - black_y) == 1) or (
                                     red_y == black_y and fabs(red_x - black_x) == 1):
                                 return 'tie'
                 # 总数>2，只判断一方只为1个的情况
-                if box_count > 2:
+                elif box_count > 2:
                     # 红方只有一个棋子，如果这个棋子在棋盘上黑方有其他棋子能吃掉它，则红方就一定会输
                     # 相反如果红方的这个棋子在棋盘上黑方没有棋子能吃掉它，那么就只能是平局了
                     if red_count == 1:
-                        return self.__one_vs_more(new_pieces, 'red', value_list)
+                        return self._one_vs_more(new_pieces, 'red', value_list)
                     elif black_count == 1:
-                        return self.__one_vs_more(new_pieces, 'black', value_list)
+                        return self._one_vs_more(new_pieces, 'black', value_list)
                     else:
                         return 'none'
-        return 'none'
+        # return 'none'
 
     # 判断某一方只有一个棋子时
-    def __one_vs_more(self, new_pieces, one_color, value_list):
+    def _one_vs_more(self, new_pieces, one_color, value_list):
         index_list = []
         for key, value in new_pieces.items():
             box_color = key.split('_')[0]
             box_value = key.split('_')[1]
             if box_color == one_color:
                 one_value = box_value[:-1]
-                # one_value = box_value[:-1] if box_value[-1:].isnumeric() else box_value
                 one_index = value_list.index(one_value)
             else:
                 more_value = box_value[:-1]
-                # more_value = box_value[:-1] if box_value[-1:].isnumeric() else box_value
                 index_list.append(value_list.index(more_value))
         # 红方只有一个pao，黑方也只有pao和zu，则为平局
         if one_index == 5 and [0, 1, 2, 3, 4] not in index_list and len(index_list) < 4:

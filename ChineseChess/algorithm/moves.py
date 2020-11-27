@@ -12,6 +12,7 @@ from ChineseChess.gameFunction import GameFunction
 from ChineseChess.settings import Settings
 from ChineseChess.algorithm.scores import Scores
 from math import fabs
+from ChineseChess.loggerPrint import LoggerPrint
 
 class MoveNodes():
     def __init__(self, box_name_from, box_from, box_action, box_name_to, box_to, box_res, score=10):
@@ -30,6 +31,7 @@ class Moves():
         #
         self.settings = Settings()
         self.game_func = GameFunction(self.settings)
+        self.log = LoggerPrint(self.settings).printLogToSystem()
 
     # 获得所有棋子可能的走棋内容（省略了很多不关联的走棋内容，比如不关联的打开棋子，走动棋子等等）
     def generate_all_moves(self):
@@ -112,10 +114,6 @@ class Moves():
                         box_open_near = self._open_piece_for_near(box_xy)
                         for box2 in box_open_near:
                             box2_xy, box2_key, box2_state, box2_color, box2_name = self._get_box(box2)
-                            # if box2_state is None:
-                            #     yesOrNo = self._box_open_yes_or_on(box_xy, box_name, box2_xy, box1_state=None)
-                            #     if yesOrNo[0] is True:
-                            #         moves.append(MoveNodes(box_key, box_xy, '移动', box2_key, box2_xy, None, score=yesOrNo[1]))
                             # 这个特殊情况，要判断'pao'是否被旁边的对方棋子威胁
                             if box2_state is True:
                                 # 判断为对方棋子而且为['shi', 'xiang', 'ma', 'ju']
@@ -123,32 +121,6 @@ class Moves():
                                     score, box1_key, box1_xy = self._danger_box_yes_or_no(box_xy, box_name, box_color, box2_name, box2)
                                     if score is not None:
                                         moves.append(MoveNodes(box_key, box_xy, '移动', box1_key, box1_xy, None, score=score))
-                                    # score = Scores.eat_score(f"{box2_name}_pao")
-                                    # box_open_near2 = self._open_piece_for_near(box_xy)
-                                    # # 从box_open_near2中寻找能保护box的棋子
-                                    # for box3 in box_open_near2:
-                                    #     box3_xy, box3_key, box3_state, box3_color, box3_name = self._get_box(box3)
-                                    #     if box3_state is True and box3_color == box_color:
-                                    #         box2_index = self.settings.pieces_list.index(box2_name)
-                                    #         box3_index = self.settings.pieces_list.index(box3_name)
-                                    #         # 确认box_open_near2中有比box2大的棋子
-                                    #         if box3_index <= box2_index:
-                                    #             box_open_corner1 = self._open_piece_for_corner(box3_xy)
-                                    #             # 寻找box3对角线上的棋子，为box移动找空缺的棋子位置
-                                    #             for box4 in box_open_corner1:
-                                    #                 box4_x, box4_y = box4
-                                    #                 box4_xy, box4_key, box4_state, box4_color, box4_name = self._get_box(box4)
-                                    #                 if box4 != box2:
-                                    #                     box_x = int(box_xy.split('_')[1])
-                                    #                     box_y = int(box_xy.split('_')[-1])
-                                    #                     # 找到了可移动空缺的棋子位置
-                                    #                     if (box_x == box4_x or box_y == box4_y) and box4_state is None:
-                                    #                         # 对空缺的棋子位置判断是否有新的威胁
-                                    #                         yesOrNo = self._box_open_yes_or_on(box_xy, box_name, box4_xy, box1_state=None)
-                                    #                         if yesOrNo[0] is True:
-                                    #                             score += 2
-                                    #                             moves.append(MoveNodes(box_key, box_xy, '移动', box4_key, box4_xy, None, score=score))
-
                 # 这里表示当前的棋子是player1方阵的棋子
                 else:
                     # 如果该棋子为"ma\ju\pao\zu",就可以在其旁边位置翻开棋子，有几率翻开电脑的棋子比它大（冒险一点的走法）
@@ -222,7 +194,7 @@ class Moves():
                         red_jiang_is_true = True
                     elif piece['box_key'] == 'black_jiang1':
                         black_jiang_is_true = True
-                # 对zu有不同的score
+                # 对zu有不同的score：自己方的jiang还存在，则吃掉对方的zu得分就会高，jiang不存在了zu的分值就是最低的
                 box_color = 'red' if self.player1_color == 'black' else 'black'
                 if (box_color == 'red' and red_jiang_is_true is True and box_name == 'zu'):
                     if black_jiang_is_true is False:
@@ -532,6 +504,6 @@ if __name__ == '__main__':
     moves = Moves(all_pieces, 'red')
     get_moves = moves.generate_all_moves()
     for i, move in enumerate(get_moves, 1):
-        print(f"{move.box_name_from}===>>>{move.box_from}===>>>{move.box_action}===>>>{move.box_name_to}===>>>{move.box_to}===>>>{move.box_res}===>>>{move.score}")
+        logg.info(f"{move.box_name_from}===>>>{move.box_from}===>>>{move.box_action}===>>>{move.box_name_to}===>>>{move.box_to}===>>>{move.box_res}===>>>{move.score}")
 
 

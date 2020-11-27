@@ -21,10 +21,9 @@ class LoggerPrint(object):
         self.setting = setting
 
     # 打印日志到系统控制台上
-    def printLogToSystem(self, is_out_file=False):
+    def printLogToSystem(self, is_out_file=True):
         """
         :param is_out_file: True or False,定义是否同时写入日志文件，默认False
-        :param filename: 传入的文件名称，is_out_file为True时必须传入此参数，否则抛出异常
         :return: 返回logger
         """
         # 避免重复的创建handlers,导致打印重复的日志内容
@@ -46,7 +45,6 @@ class LoggerPrint(object):
     # 写日志到日志文件中
     def printLogToFile(self):
         """
-        :param filename: 日志文件名称，以后缀表示
         :return: 返回logger
         """
         # 避免重复的创建handlers,导致写入重复的日志内容

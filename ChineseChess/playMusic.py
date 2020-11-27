@@ -20,7 +20,7 @@ class PlayMusic():
     def __init__(self, setting):
         self.setting = setting
         self.logger = LoggerPrint(self.setting)
-        self.log = self.logger.printLogToSystem(False)
+        self.log = self.logger.printLogToSystem()
         # 初始化混音器
         self.mixer_init = pygame.mixer.init()
         self.log.info("初始化混音器成功！")
@@ -46,11 +46,12 @@ class PlayMusic():
     def is_not_busy(self):
         mixer_state = pygame.mixer.get_init()
         if mixer_state:
+            # 如果播放器没有工作，则调用播放背景音乐功能方法
             if pygame.mixer.music.get_busy() == False and PlayMusic._MUSIC_PLAY_FLAG == 0:
                 self.play_bg_music()
             else:
                 if PlayMusic._MUSIC_PLAY_FLAG == 0:
-                    # print('当前音乐正在播放，请等待。。。')
+                    # 定时器，没隔1s检查一次播放器是否有在播放
                     t = threading.Timer(1, self.is_not_busy)
                     t.start()
         else:

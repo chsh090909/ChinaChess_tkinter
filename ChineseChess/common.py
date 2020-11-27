@@ -22,7 +22,7 @@ class Commmon():
     def __init__(self, setting):
         self.setting = setting
         self.__logger = LoggerPrint(self.setting)
-        self.log = self.__logger.printLogToSystem(False)
+        self.log = self.__logger.printLogToSystem()
 
         self.times = 0
         self.color1, self.color2 = 'red', 'black'

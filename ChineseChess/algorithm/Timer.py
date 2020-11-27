@@ -3,6 +3,10 @@
 
 import timeit
 from time import sleep
+from ChineseChess.loggerPrint import LoggerPrint
+from ChineseChess.settings import Settings
+
+logg = LoggerPrint(Settings()).printLogToSystem()
 
 def clock(func):
     def clocked(*args, **kwargs):
@@ -10,6 +14,6 @@ def clock(func):
         result = func(*args, **kwargs)
         elapsed = timeit.default_timer() - t0
         name = func.__name__
-        print('%s 耗时 [%0.8fs]' % (name, elapsed))
+        logg.info('%s 耗时 [%0.8fs]' % (name, elapsed))
         return result
     return clocked
