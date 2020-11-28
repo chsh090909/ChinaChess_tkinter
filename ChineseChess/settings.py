@@ -7,7 +7,7 @@ class Settings(object):
     """
     def __init__(self):
         # 设置版本号
-        self.version = ' V0.0.12'
+        self.version = ' V1.0.0'
         self.version_file = 'help/versioninfo.me'
         # 窗体设置：宽、高、背景颜色、窗体标题以及窗体图标
         self.screen_width = 1030
@@ -39,8 +39,6 @@ class Settings(object):
         self.player2_thinktime = 2
         self.font_style = '经典繁毛楷'
         self.font_color = '#8B4513'
-        self.font_player_size = 44
-        self.font_info_size = 30
         # 设置背景音乐的音乐列表
         self.music_list = ['101.mid', '102.mid', '103.mid', '104.mid', '105.mid', '106.mid', '107.mid', '108.mid',
                            '109.mid', '111.mid', '112.mid', '113.mid', '114.mid', '115.mid', '116.mid', '117.mid']

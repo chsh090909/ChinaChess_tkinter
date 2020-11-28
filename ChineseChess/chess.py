@@ -24,6 +24,7 @@ from ChineseChess.common import Commmon
 from ChineseChess.loggerPrint import LoggerPrint
 from ChineseChess.algorithm.MinMax import MinMax
 
+
 # 导入settings配置文件
 setting = Settings()
 # 加载公共模块方法
@@ -177,7 +178,7 @@ class Chess(object):
 
     # 为关于菜单，打开自定义对话框展示版本信息等
     def about_dialog(self):
-        MyDialog(self.master, widget='about', title='关于游戏', img=red_jiang_img)
+        MyDialog(self.master, widget='about', title='关于游戏', img=red_jiang_img, systemFlag=self.system_flag)
 
     # 为如何玩菜单，打开pdf文件
     def how_play(self):
@@ -360,8 +361,14 @@ class Chess(object):
         self.cv.create_image(515, 590, image=vs_img)
         if layout == 'default':
             # 定义字体
-            player_name_font = (setting.font_style, 44)
-            player_info_font = (setting.font_style, 28)
+            if self.system_flag == 1:
+                # Mac系统字体大小
+                player_name_font = (setting.font_style, 44)
+                player_info_font = (setting.font_style, 28)
+            elif self.system_flag == 2:
+                # Windows系统字体大小
+                player_name_font = (setting.font_style, 30)
+                player_info_font = (setting.font_style, 19)
             font_color = setting.font_color
             # 玩家一
             self.player1_name = self.cv.create_text(184, 525, text=self.player1, font=player_name_font, fill=None)
@@ -425,7 +432,7 @@ class Chess(object):
         if is_normal_over:
             # 加载游戏胜利对话框
             MyDialog(self.master, widget='over', title=f'第{self.totalCount}局游戏结束', img=win_img,
-                     totalCount=self.totalCount, writeWin=write_won)
+                     totalCount=self.totalCount, writeWin=write_won, systemFlag=self.system_flag)
         # 清空棋盘
         for i in range(8):
             for j in range(4):
