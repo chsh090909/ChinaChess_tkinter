@@ -6,7 +6,7 @@ from time import sleep
 from ChineseChess.loggerPrint import LoggerPrint
 from ChineseChess.settings import Settings
 
-logg = LoggerPrint(Settings()).printLogToSystem()
+logg = LoggerPrint(Settings()).printLogToSystem(False)
 
 def clock(func):
     def clocked(*args, **kwargs):

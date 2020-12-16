@@ -31,7 +31,30 @@ class Moves():
         #
         self.settings = Settings()
         self.game_func = GameFunction(self.settings)
-        self.log = LoggerPrint(self.settings).printLogToSystem()
+        self.log = LoggerPrint(self.settings).printLogToSystem(False)
+
+    # 判断双方的jiang是否都还存在，取吃zu的得分
+    def get_score_for_zu_by_jiang(self, box_color, box_name):
+        # 先判断双方的jiang是否都还存在
+        red_jiang_is_true, black_jiang_is_true = False, False
+        for _, piece in self.all_pieces.items():
+            if piece['box_key'] == 'red_jiang1':
+                red_jiang_is_true = True
+            elif piece['box_key'] == 'black_jiang1':
+                black_jiang_is_true = True
+        # 再对吃zu的得分进行判断：基于jiang是否存在，来判断吃对方zu的得分
+        if box_color == 'red':
+            if red_jiang_is_true is True:
+                score = Scores.eat_score(f"{box_name}_zu")
+            else:
+                score = Scores.eat_score(f"{box_name}_zu_no_jiang")
+        else:
+            if black_jiang_is_true is True:
+                score = Scores.eat_score(f"{box_name}_zu")
+            else:
+                score = Scores.eat_score(f"{box_name}_zu_no_jiang")
+        #
+        return score
 
     # 获得所有棋子可能的走棋内容（省略了很多不关联的走棋内容，比如不关联的打开棋子，走动棋子等等）
     def generate_all_moves(self):
@@ -44,205 +67,193 @@ class Moves():
                 box_name = box_name[:-1]
                 # 这是一个player2方阵的棋子
                 if box_color != self.player1_color:
-                    # 不等于'pao'，而且棋子偏大，可以翻开或移动到临近的棋子
+                    # 不等于'pao'，而且棋子偏大，可以翻开临近的棋子或者移动到临近的空格中
                     if box_name in ['shi', 'xiang', 'ma']:
-                        box_open = self._open_piece_for_near(box_xy)
-                        for box1 in box_open:
-                            box1_xy, box1_key, box1_state, box1_color, box1_name = self._get_box(box1)
-                            if box1_state is True:
-                                result = self.game_func.piece_VS_piece(box_xy, box1_xy, self.all_pieces)
-                                if result[2] is True:
-                                    if result[1] in ['jiang_zu', 'box1<box2']:
-                                        score, box1_key, box1_xy = self._danger_box_yes_or_no(box_xy, box_name, box_color, box1_name, box1)
-                                        if score is not None:
-                                            moves.append(MoveNodes(box_key, box_xy, '移动', box1_key, box1_xy, None, score=score))
-                                    else:
-                                        moves.append(MoveNodes(box_key, box_xy, '吃棋', box1_key, box1_xy, result[1]))
-                            elif box1_state is None:
-                                yesOrNo = self._box_open_yes_or_on(box_xy, box_name, box1_xy, box1_state=None)
-                                if yesOrNo[0] is True:
-                                    moves.append(MoveNodes(box_key, box_xy, '移动', None, box1_xy, None, score=yesOrNo[1]))
-                            else:
-                                # 判断打开当前位置的棋子的威胁度有多大，适不适合打开
-                                yesOrNo = self._box_open_yes_or_on(box_xy, box_name, box1_xy)
-                                if yesOrNo[0] is True:
-                                    moves.append(MoveNodes(box_key, box_xy, '打开', None, box1_xy, None, score=yesOrNo[1]))
-                    # 棋子偏小，可以翻开斜角的棋子来保护，也可以移动到临近的棋子
+                        # 取box的临近方格坐标
+                        moves_1 = self._box_near_yes_or_no(box_xy, box_name, box_color, box_key)
+                        moves += moves_1
+                    # 不等于'pao'，而且棋子偏小，可以翻开斜角的棋子来保护，也可以移动到临近的棋子
                     elif box_name in ['jiang', 'ju', 'zu']:
-                        # 打开棋子的所有走棋
+                        # 取box的斜角方格坐标
                         box_open_corner = self._open_piece_for_corner(box_xy)
                         for box1 in box_open_corner:
                             box1_xy, box1_key, box1_state, box1_color, box1_name = self._get_box(box1)
-                            # 判断打开当前位置的棋子的威胁度有多大，适不适合打开
+                            # 斜角方格坐标中，方格状态为False才有效
                             if box1_state is False:
-                                yesOrNo = self._box_open_yes_or_on(box_xy, box_name, box1_xy)
-                                if yesOrNo[0] is True:
-                                    moves.append(MoveNodes(box_key, box_xy, '打开', None, box1_xy, None, score=yesOrNo[1]))
-                        # 移动或者吃棋的所有走棋
-                        box_open_near = self._open_piece_for_near(box_xy)
-                        for box2 in box_open_near:
-                            box2_xy, box2_key, box2_state, box2_color, box2_name = self._get_box(box2)
-                            if box2_state is True:
-                                result = self.game_func.piece_VS_piece(box_xy, box2_xy, self.all_pieces)
-                                if result[2] is True:
-                                    if result[1] in ['jiang_zu', 'box1<box2']:
-                                        score, box1_key, box1_xy = self._danger_box_yes_or_no(box_xy, box_name, box_color, box2_name, box2)
-                                        if score is not None:
-                                            moves.append(MoveNodes(box_key, box_xy, '移动', box1_key, box1_xy, None, score=score))
-                                    else:
-                                        moves.append(MoveNodes(box_key, box_xy, '吃棋', box2_key, box2_xy, result[1]))
-                            elif box2_state is None:
-                                yesOrNo = self._box_open_yes_or_on(box_xy, box_name, box2_xy, box1_state=None)
-                                if yesOrNo[0] is True:
-                                    moves.append(MoveNodes(box_key, box_xy, '移动', box2_key, box2_xy, None, score=yesOrNo[1]))
+                                score = self._box_open_yes_or_no(box1_xy, box1_name, box1_color, box_xy, box_name, box_color, box1_state=False)
+                                if score is not None:
+                                    moves.append(MoveNodes(box_key, box_xy, '打开', None, box1_xy, None, score=score))
+                        # 取box的临近方格坐标
+                        moves_1 = self._box_near_yes_or_no(box_xy, box_name, box_color, box_key)
+                        moves += moves_1
                     # 等于'pao'分两种情况：吃棋要跳着吃，走棋只能移动
                     elif box_name == 'pao':
-                        # 吃棋的情况
+                        # 取pao路上能吃棋的方格坐标
                         box_open_pao = self._open_piece_for_pao(box_xy)
                         for box1 in box_open_pao:
                             box1_xy, box1_key, box1_state, box1_color, box1_name = self._get_box(box1)
+                            # 方格状态为True，表示有吃棋的可能
                             if box1_state is True:
                                 result = self.game_func.piece_VS_piece(box_xy, box1_xy, self.all_pieces)
                                 if result[2] is True:
-                                    moves.append(MoveNodes(box_key, box_xy, '吃棋', box1_key, box1_xy, result[1]))
+                                    # 判断box1不存在威胁
+                                    score = self._box_open_yes_or_no(box1_xy, box1_name, box1_color, box_xy, box_name, box_color)
+                                    if score is not None:
+                                        if box1_name == 'zu':
+                                            move_score = self.get_score_for_zu_by_jiang(box_color, box_name)
+                                        else:
+                                            move_score = Scores.eat_score(f"{box_name}_{box1_name}")
+                                        moves.append(MoveNodes(box_key, box_xy, '吃棋', box1_key, box1_xy, result[1], score=move_score))
+                            # 方格状态为False，可以翻开再吃棋
                             elif box1_state is False:
                                 # 判断打开当前位置的棋子的威胁度有多大，适不适合打开
-                                yesOrNo = self._box_open_yes_or_on(box_xy, box_name, box1_xy)
-                                if yesOrNo[0] is True:
-                                    moves.append(MoveNodes(box_key, box_xy, '打开', None, box1_xy, None, score=yesOrNo[1]))
-                        # 移动的情况
-                        box_open_near = self._open_piece_for_near(box_xy)
-                        for box2 in box_open_near:
-                            box2_xy, box2_key, box2_state, box2_color, box2_name = self._get_box(box2)
-                            # 这个特殊情况，要判断'pao'是否被旁边的对方棋子威胁
-                            if box2_state is True:
-                                # 判断为对方棋子而且为['shi', 'xiang', 'ma', 'ju']
-                                if box2_color != box_color and box2_name in ['shi', 'xiang', 'ma', 'ju']:
-                                    score, box1_key, box1_xy = self._danger_box_yes_or_no(box_xy, box_name, box_color, box2_name, box2)
-                                    if score is not None:
-                                        moves.append(MoveNodes(box_key, box_xy, '移动', box1_key, box1_xy, None, score=score))
+                                score = self._box_open_yes_or_no(box1_xy, box1_name, box1_color, box_xy, box_name, box_color, box1_state=False)
+                                if score is not None:
+                                    score += int(Scores.piece_score(box_name) / 100)
+                                    moves.append(MoveNodes(box_key, box_xy, '打开', None, box1_xy, None, score=score))
+                        # 移动的情况:取pao临近的方格坐标
+                        moves_1 = self._box_near_yes_or_no(box_xy, box_name, box_color, box_key)
+                        moves += moves_1
                 # 这里表示当前的棋子是player1方阵的棋子
                 else:
-                    # 如果该棋子为"ma\ju\pao\zu",就可以在其旁边位置翻开棋子，有几率翻开电脑的棋子比它大（冒险一点的走法）
-                    # 保守一点的走法就是该棋子为"ju\pao\zu"
                     box_open = []
-                    if box_name in ['jiang', 'ju', 'pao', 'zu']:
+                    # 如果该棋子为"ma\ju\pao\zu",就可以在其旁边位置翻开棋子，有几率翻开电脑的棋子比它大（冒险一点的走法）
+                    # 保守一点的走法就是该棋子为"ju\pao\zu",棋子偏小可以打开临近棋子，也可以打开寻找pao
+                    if box_name in ['jiang', 'pao', 'zu', 'ju']:
                         box_open = self._open_piece_for_near(box_xy)
                     # 如果棋子偏大，就去翻开棋子找'pao'，这样'pao'就可以直接吃掉这个棋子
-                    box_open_pao = self._open_piece_for_pao(box_xy)
-                    box_open += box_open_pao
+                    if box_name != 'pao':
+                        box_open += self._open_piece_for_pao(box_xy)
                     for box1 in box_open:
                         box1_xy, box1_key, box1_state, box1_color, box1_name = self._get_box(box1)
                         if box1_state is False:
                             # 判断打开当前位置的棋子的威胁度有多大，适不适合打开
-                            yesOrNo = self._box_open_yes_or_on(box_xy, box_name, box1_xy)
-                            if yesOrNo[0] is True:
-                                moves.append(MoveNodes(box_key, box_xy, '打开', None, box1_xy, None, score=yesOrNo[1]))
+                            score = self._box_open_yes_or_no(box1_xy, box1_name, box1_color, box_xy, box_name, box_color, box1_state=False)
+                            if score is not None:
+                                if box_name in ['jiang', 'shi', 'xiang', 'ma']:
+                                    score += int(Scores.piece_score(box_name) / 100)
+                                moves.append(MoveNodes(box_key, box_xy, '打开', None, box1_xy, None, score=score))
         return moves
 
-    # 对受威胁的棋子寻找可避开的走棋（如果有）
-    def _danger_box_yes_or_no(self, box_xy, box_name, box_color, box1_name, box1):
-        score = Scores.eat_score(f"{box1_name}_{box_name}")
-        box_open_near2 = self._open_piece_for_near(box_xy)
-        # 从box_open_near2中寻找能保护box的棋子
-        for box3 in box_open_near2:
-            box3_xy, box3_key, box3_state, box3_color, box3_name = self._get_box(box3)
-            if box3_state is True and box3_color == box_color:
-                box1_index = self.settings.pieces_list.index(box1_name)
-                box3_index = self.settings.pieces_list.index(box3_name)
-                # 确认box_open_near2中有比box2大的棋子
-                if box3_index <= box1_index:
-                    box_open_corner1 = self._open_piece_for_corner(box3_xy)
-                    # 寻找box3对角线上的棋子，为box移动找空缺的棋子位置
-                    for box4 in box_open_corner1:
-                        box4_x, box4_y = box4
-                        box4_xy, box4_key, box4_state, box4_color, box4_name = self._get_box(box4)
-                        if box4 != box1:
-                            box_x = int(box_xy.split('_')[1])
-                            box_y = int(box_xy.split('_')[-1])
-                            # 找到了可移动空缺的棋子位置
-                            if (box_x == box4_x or box_y == box4_y) and box4_state is None:
-                                # 对空缺的棋子位置判断是否有新的威胁
-                                yesOrNo = self._box_open_yes_or_on(box_xy, box_name, box4_xy, box1_state=None)
-                                if yesOrNo[0] is True:
-                                    score_piece = int(Scores.piece_score(box1_name) / 10000)
-                                    score += score_piece
-                                    return [score, box4_key, box4_xy]
-        return [None, None, None]
+    # 对当前棋子临近的方格做判断
+    def _box_near_yes_or_no(self, box_xy, box_name, box_color, box_key):
+        moves = []
+        # 取临近的方格坐标
+        box_open_near = self._open_piece_for_near(box_xy)
+        for box1 in box_open_near:
+            danger_score, score = 0, 0
+            box1_xy, box1_key, box1_state, box1_color, box1_name = self._get_box(box1)
+            # 临近的棋子为True，判断是否可以吃棋，不可以吃棋的话有没有威胁
+            if box1_state is True:
+                # box不为pao才能临近吃棋
+                if box_name != 'pao':
+                    # 对比两个棋子的大小
+                    result = self.game_func.piece_VS_piece(box_xy, box1_xy, self.all_pieces)
+                    # 对比结果有效
+                    if result[2] is True:
+                        # 临近的棋子比当前棋子大，有威胁:计算威胁的分值
+                        if result[1] in ['jiang_zu', 'box1<box2']:
+                            danger_score = self._danger_box_yes_or_no(box_name, box1_name, box1_color)
+                            # 因为有danger_score，未避免danger_score前有box的'移动'行棋已经完成，因此需要修改box的'移动'行棋的move.score
+                            for move in moves:
+                                if move.box_name_from == box_key and move.box_from == box_xy and move.box_action == '移动':
+                                    move.score += danger_score
+                        # 临近的棋子等于当前棋子，则可以吃棋
+                        elif result[1] == 'box1=box2':
+                            if box1_name == 'zu':
+                                move_score = self.get_score_for_zu_by_jiang(box_color, box_name)
+                            else:
+                                move_score = Scores.eat_score(f"{box_name}_{box1_name}")
+                            score += move_score
+                            moves.append(MoveNodes(box_key, box_xy, '吃棋', box1_key, box1_xy, result[1], score=score))
+                        # 临近的棋子比当前棋子小，则可以吃棋
+                        else:
+                            # 判断box1不存在威胁
+                            score_1 = self._box_open_yes_or_no(box1_xy, box1_name, box1_color, box_xy, box_name, box_color)
+                            if score_1 is not None:
+                                if box1_name == 'zu':
+                                    move_score = self.get_score_for_zu_by_jiang(box_color, box_name)
+                                else:
+                                    move_score = Scores.eat_score(f"{box_name}_{box1_name}")
+                                score += score_1
+                                score += move_score
+                                moves.append(MoveNodes(box_key, box_xy, '吃棋', box1_key, box1_xy, result[1], score=score))
+                # box为pao只能获取威胁分值
+                else:
+                    # 对比两个棋子的大小，反过来对比
+                    result = self.game_func.piece_VS_piece(box1_xy, box_xy, self.all_pieces)
+                    # 对比结果有效,得到反过来的结论才能得出威胁的分值
+                    if result[2] is True and result[1] == 'success':
+                        danger_score = self._danger_box_yes_or_no(box_name, box1_name, box1_color)
+                        # danger_score的处理
+                        for move in moves:
+                            if move.box_name_from == box_name and move.box_from == box_xy and move.box_action == '移动':
+                                move.score += danger_score
+            # 临近的棋子为None或False
+            else:
+                # 临近的棋子为None，移动到该空格位上
+                if box1_state is None:
+                    score_1 = self._box_open_yes_or_no(box1_xy, box1_name, box1_color, box_xy, box_name, box_color)
+                    if score_1 is not None:
+                        score += score_1
+                        if danger_score != 0:
+                            score += danger_score
+                        moves.append(MoveNodes(box_key, box_xy, '移动', None, box1_xy, None, score=score))
+                # 临近的棋子为False
+                else:
+                    # 棋子比较大，打开棋子
+                    if box_name in ['shi', 'xiang', 'ma']:
+                        score_1 = self._box_open_yes_or_no(box1_xy, box1_name, box1_color, box_xy, box_name, box_color, box1_state=False)
+                        if score_1 is not None:
+                            score += int(Scores.piece_score(box_name) / 100)
+                            score += score_1
+                            moves.append(MoveNodes(box_key, box_xy, '打开', None, box1_xy, None, score=score))
+                    # 棋子比较小，以及打开斜角保护棋子，就不打开附近棋子了
+                    elif box_name in ['jiang', 'ju', 'zu', 'pao']:
+                        pass
+        return moves
 
-    # 判断当前的box可否打开
-    def _box_open_yes_or_on(self, box_xy, box_name, box1_xy, box1_state=False):
-        # box1_flag为true表示该棋子不在pao路上，需要继续判断相邻的棋子是否有威胁
-        box1_flag = True
+    # 对受威胁的棋子计算棋子的分值
+    def _danger_box_yes_or_no(self, box_name, danger_box_name, danger_box_color):
+        if box_name == 'zu':
+            return int(self.get_score_for_zu_by_jiang(danger_box_color, danger_box_name) / 1000)
+        else:
+            return int(Scores.eat_score(f"{danger_box_name}_{box_name}") / 1000)
+
+    # 判断当前的box可否打开，可否移动
+    def _box_open_yes_or_no(self, box1_xy, box1_name, box1_color, box_xy, box_name, box_color, box1_state=None):
+        # pao_flag为False表示该棋子不在pao路上，需要继续判断相邻的棋子是否有威胁
+        pao_flag = False
         box_open_pao = self._open_piece_for_pao(box1_xy)
         # 是否在对方的pao路上
         for box2 in box_open_pao:
             box2_xy, box2_key, box2_state, box2_color, box2_name = self._get_box(box2)
-            if box2_state is True:
-                # 在对方pao的进攻路上，没有打开的box_to的必要了
-                if box2_color == self.player1_color and box2_name == 'pao':
-                    box1_flag = False
-                    break
-        # 判断临近的棋子是否会对自己的棋子产生威胁
-        if box1_flag is True:
-            score = 0
-            if box1_state is False:
-                # 判断双方的jiang是否都还存在
-                red_jiang_is_true, black_jiang_is_true = False, False
-                for _, piece in self.all_pieces.items():
-                    if piece['box_key'] == 'red_jiang1':
-                        red_jiang_is_true = True
-                    elif piece['box_key'] == 'black_jiang1':
-                        black_jiang_is_true = True
-                # 对zu有不同的score：自己方的jiang还存在，则吃掉对方的zu得分就会高，jiang不存在了zu的分值就是最低的
-                box_color = 'red' if self.player1_color == 'black' else 'black'
-                if (box_color == 'red' and red_jiang_is_true is True and box_name == 'zu'):
-                    if black_jiang_is_true is False:
-                        score = int(Scores.piece_score(f"zu_no_jiang") / 10000) + 10
-                    else:
-                        score = int(Scores.piece_score(f"zu") / 10000) + 10
-                elif (box_color == 'black' and black_jiang_is_true is True and box_name == 'zu'):
-                    if red_jiang_is_true is False:
-                        score = int(Scores.piece_score(f"zu_no_jiang") / 10000) + 10
-                    else:
-                        score = int(Scores.piece_score(f"zu") / 10000) + 10
-                else:
-                    score = int(Scores.piece_score(f"{box_name}") / 10000) + 10
-            #
+            # 在对方pao的进攻路上，没有移动到box2的必要了
+            if box2_xy != box_xy and box2_state is True and box2_color != box_color and box2_name == 'pao':
+                pao_flag = True
+                break
+        # 判断临近的棋子是否会对该空格产生威胁
+        if pao_flag is False:
             box_open_near = self._open_piece_for_near(box1_xy)
             for i, box3 in enumerate(box_open_near, 1):
+                score = 10
                 box3_xy, box3_key, box3_state, box3_color, box3_name = self._get_box(box3)
-                if box3_state is True and box3_xy != box_xy:
-                    if box3_color == self.player1_color:
-                        box3_index = self.settings.pieces_list.index(box3_name)
-                        box_index = self.settings.pieces_list.index(box_name)
-                        # 这个位置的棋子是否比己方box_from的棋子大，如果大就没有必要打开box_to的棋子了
-                        if box_index > box3_index:
-                            # 特殊情况：box_name为zu，box3_name为jiang，是可以被吃掉的
-                            if box_name == 'zu' and box3_name == 'jiang':
-                                if box1_state is not None:
-                                    score += 1000
-                            elif box_name == 'zu' and box3_name == 'ju':
-                                if box1_state is False:
-                                    score += Scores.other_pieces_score('zu_ju')
-                            elif box_name == 'zu' and box3_name == 'pao':
-                                if box1_state is False:
-                                    score += Scores.other_pieces_score('zu_pao')
-                            elif box_name == 'pao' and box3_name  == 'jiang':
-                                if box1_state is False:
-                                    score += Scores.other_pieces_score('pao_jiang')
-                            elif box_name == 'pao' and box3_name == 'ju':
-                                if box1_state is False:
-                                    score += Scores.other_pieces_score('pao_ju')
-                            else:
-                                break
-                        else:
-                            # box1_state为False表示打开棋子，为None表示移动棋子
-                            if box1_state is None:
-                                if box_name == 'jiang' and box3_name in ['pao', 'zu']:
-                                    score = 0
-                                elif box_name == 'pao' and box3_name == 'zu':
-                                    score = 0
+                if box3_xy != box_xy:
+                    # box3为True，要判断box3是否能对box构成威胁
+                    if box3_state is True:
+                        # box3和box不在同一方阵颜色
+                        if box3_color != box_color:
+                            box3_index = self.settings.pieces_list.index(box3_name)
+                            box_index = self.settings.pieces_list.index(box_name)
+                            # 而且box3的棋子比box的小才行
+                            if box_index <= box3_index or (box_name == 'zu' and box3_name == 'jiang'):
+                                score_eat = 10
+                                # 特殊情况：zu比jiang的index大，但zu是吃jiang的，只能break
+                                if box_name == 'jiang' and box3_name == 'zu':
+                                    break
+                                # 特殊情况：pao和zu在一起以及jiang和pao在一起都是没影响的
+                                elif (box_name == 'pao' and box3_name == 'zu') or (box_name == 'jiang' and box3_name == 'pao'):
+                                    score_eat = 10
                                 else:
                                     # 判断两个棋子是否在对角线上，而且田字格里没有其他的棋子
                                     box_x = int(box_xy.split('_')[1])
@@ -254,22 +265,55 @@ class Moves():
                                         box4_xy, box4_key, box4_state, box4_color, box4_name = self._get_box((box4_x, box4_y))
                                         box5_xy, box5_key, box5_state, box5_color, box5_name = self._get_box((box5_x, box5_y))
                                         if box4_state is None and box5_state is None:
-                                            score = 0
+                                            score_eat = 10
                                     elif (box3_x-box_x == -1 and box3_y-box_y == -1) or (box3_x-box_x == 1 and box3_y-box_y == -1):
                                         box4_x, box4_y = box_x, box3_y
                                         box5_x, box5_y = box3_x, box_y
                                         box4_xy, box4_key, box4_state, box4_color, box4_name = self._get_box((box4_x, box4_y))
                                         box5_xy, box5_key, box5_state, box5_color, box5_name = self._get_box((box5_x, box5_y))
                                         if box4_state is None and box5_state is None:
-                                            score = 0
+                                            score_eat = 10
                                     else:
-                                        score += 1000
+                                        score_eat = int(Scores.eat_score(f"{box_name}_{box3_name}") / 1000)
+                                        score_eat += score
+                                # 对同一个box1而言，box3的得分取最大就可以了
+                                if score == 10 or score_eat >= score:
+                                    score = score_eat
+                            # box3的棋子比box的大，一般的情况是不能吃box1或者移动到box1
+                            else:
+                                # 特殊情况：pao或zu在ma或ju旁边时，应优先吃棋
+                                if box_name in ['ma', 'ju'] and box1_name in ['pao', 'zu'] and box_color != box1_color:
+                                    if box1_name == 'zu':
+                                        score_eat = self.get_score_for_zu_by_jiang(box_color, box_name)
+                                    else:
+                                        score_eat = Scores.eat_score(f"{box_name}_{box1_name}")
+                                    score += int(score_eat / 1000)
+                                # 特殊情况：对方jiang在zu旁边，必须吃掉
+                                if box_name == 'zu' and box1_name == 'jiang' and box_color != box1_color:
+                                    if box1_name == 'zu':
+                                        score_eat = self.get_score_for_zu_by_jiang(box_color, box_name)
+                                    else:
+                                        score_eat = Scores.eat_score(f"{box_name}_{box1_name}")
+                                    score += int(score_eat / 1000)
+                                else:
+                                    break
+                        # box3和box在同一方阵颜色，而且都为player1的方阵，取box1的状态，得到特殊得分
+                        elif box3_color == box_color and box_color == self.player1_color and box1_state is False:
+                            if (box_name == 'zu' and box3_name == 'ju') or (box3_name == 'zu' and box_name == 'ju'):
+                                score = Scores.other_pieces_score('zu_ju')
+                            elif (box_name == 'zu' and box3_name == 'pao') or (box3_name == 'zu' and box_name == 'pao'):
+                                score = Scores.other_pieces_score('zu_pao')
+                            elif (box_name == 'pao' and box3_name  == 'jiang') or (box3_name == 'pao' and box_name  == 'jiang'):
+                                score = Scores.other_pieces_score('pao_jiang')
+                            elif (box_name == 'pao' and box3_name == 'ju') or (box3_name == 'pao' and box_name == 'ju'):
+                                score = Scores.other_pieces_score('pao_ju')
+                    # box1有效，可以移动到该空格
+                    else:
+                        pass
+                # 遍历box1附近的所有方格，如果都没有威胁则可返回
                 if i == len(box_open_near):
-                    # 可移动空位得分丢弃
-                    # if self.all_pieces[box1_xy]['state'] is None:
-                    #     score += 100
-                    return [True, score]
-        return [False, None]
+                    return score
+        return None
 
     # 根据getallmoves返回的box，找到box对应的box_key, box_state, box_color, box_name
     def _get_box(self, box):

@@ -31,8 +31,10 @@ class DataPercent():
     # 计算棋子的价值比例
     def piece_value(self):
         piece_value_dict = {}
+        # 定义各个棋子能吃多少个棋子
+        eat_dict = {'jiang': 9, 'shi': 15, 'xiang': 13, 'ma': 11, 'ju': 9, 'pao': 16, 'zu': 1}
         # 定义各个棋子能被多少个棋子吃掉
-        eat_dict = {'jiang': 8, 'shi': 5, 'xiang': 7, 'ma': 9, 'ju': 11, 'pao': 10, 'zu': 15}
+        eated_dict = {'jiang': 8, 'shi': 5, 'xiang': 7, 'ma': 9, 'ju': 11, 'pao': 10, 'zu': 15}
         #
         for _, piece in self.all_pieces.items():
             if piece['box_key'] is not None:

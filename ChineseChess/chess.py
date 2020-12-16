@@ -23,6 +23,7 @@ from ChineseChess.playMusic import PlayMusic
 from ChineseChess.common import Commmon
 from ChineseChess.loggerPrint import LoggerPrint
 from ChineseChess.algorithm.MinMax import MinMax
+from ChineseChess.algorithm.seachMove import SeachMove
 
 
 # 导入settings配置文件
@@ -35,6 +36,8 @@ logger = LoggerPrint(setting)
 game = GameFunction(setting)
 # 加载音乐播放模块
 play_music = PlayMusic(setting)
+# 加载AI模块
+seach_move = SeachMove(setting)
 
 
 class Chess(object):
@@ -87,7 +90,7 @@ class Chess(object):
         # 设置游戏模式为人机还是双人对战，开局默认为人机对战模式
         self.is_player_vs_computer = True
         # 设置AI走棋的深度
-        self.depth = 2
+        self.depth = 1
         # 设置锁定玩家1的开关，默认不锁定，当开启玩家2的AI且玩家2走棋时锁定
         self.lock_player1 = False
         # 加载目录菜单
@@ -698,7 +701,7 @@ class Chess(object):
                     box2_name = None
                     self.log.info("=====两个棋子开始比较=====")
                     self.log.info(
-                        f"box1_xy(box1_name) : box2_xy{box2_name} ==> {box1_xy}({box1_name}) : {box2_xy}({box2_name})")
+                        f"box1_xy(box1_name) : box2_xy(box2_name) ==> {box1_xy}({box1_name}) : {box2_xy}({box2_name})")
                     # 获取比较的结果
                     vs_res = game.piece_VS_piece(box1_xy, box2_xy, self.all_pieces)
                     self.log.info(f"比较之后的结果: {vs_res}")
@@ -862,7 +865,7 @@ class Chess(object):
             self.lock_player1 = True
             # 计算AI走棋消耗的时间
             t_start = timeit.default_timer()
-            best_move = MinMax.search_next_move(self.all_pieces, self.player1Color, depth)
+            best_move = seach_move.search_next_move(self.all_pieces, self.player1Color, depth)
             t_time = timeit.default_timer() - t_start
             # 对AI的最佳走棋步骤判断
             if best_move is not None:
